@@ -19,7 +19,7 @@ from datetime import datetime
 from ultralytics import YOLO
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from atved.config import get_settings
 from atved.detection import DetectionResult, FrameDetections
@@ -127,24 +127,14 @@ def main():
     print(f"{'='*60}")
     
     print("[1/4] Loading YOLOv8 Model...")
-    # Load Primary Model (Must be yolov8n to detect vehicles)
+    # Use yolov8n or atved_helmet_best.pt if available
+    model_path = "atved_helmet_best.pt" if os.path.exists("atved_helmet_best.pt") else "yolov8n.pt"
     try:
-        model = YOLO("yolov8n.pt")
-        print("Loaded Primary YOLOv8n Model")
+        model = YOLO(model_path)
     except Exception as e:
-        print(f"Error loading yolov8n.pt: {e}")
+        print(f"Failed to load model {model_path}: {e}")
         sys.exit(1)
-
-    # Load Specialized Helmet Model
-    try:
-        helmet_model = None
-        if os.path.exists("atved_helmet_best.pt"):
-            helmet_model = YOLO("atved_helmet_best.pt")
-            print("Loaded specialized Helmet Model")
-    except Exception as e:
-        print(f"Error loading atved_helmet_best.pt: {e}")
-
-    # Load Specialized Seatbelt Model
+        
     try:
         seatbelt_model = YOLO("atved_seatbelt_best.pt")
         print("Loaded specialized Seatbelt Model (Dual-Model Architecture)")
@@ -200,7 +190,7 @@ def main():
     import random
 
     try:
-        while True:
+        for _ in range(5):
             ret, frame = cap.read()
             if not ret:
                 print("End of video stream.")
@@ -227,22 +217,6 @@ def main():
                         confidence=float(box.conf[0])
                     ))
                     
-            # 1.3 Detect using Specialized Helmet Model
-            if helmet_model:
-                h_results = helmet_model.predict(frame, conf=0.3, verbose=False)
-                if h_results[0].boxes is not None:
-                    for box in h_results[0].boxes:
-                        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
-                        cls_id = int(box.cls[0])
-                        # The helmet model outputs 'helmet', 'no helmet', etc.
-                        class_name = helmet_model.names[cls_id]
-                        raw_detections.append(DetectionResult(
-                            bbox=(x1, y1, x2, y2),
-                            class_name=class_name,
-                            class_id=2000 + cls_id, # offset ID to avoid conflict
-                            confidence=float(box.conf[0])
-                        ))
-
             # 1.5 Detect using Specialized Seatbelt Model
             if seatbelt_model:
                 sb_results = seatbelt_model.predict(frame, conf=0.3, verbose=False)
@@ -250,6 +224,7 @@ def main():
                     for box in sb_results[0].boxes:
                         x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                         cls_id = int(box.cls[0])
+                        # The seatbelt model might output 'seatbelt', 'drinking', etc.
                         raw_detections.append(DetectionResult(
                             bbox=(x1, y1, x2, y2),
                             class_name=seatbelt_model.names[cls_id],
@@ -346,10 +321,10 @@ def main():
             cv2.putText(annotated, f"Red Light (Press 'r'): {'ON' if mock_red_light_enabled else 'OFF'}", (10, 30), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, line_color, 2)
             
-            cv2.imshow("ATVED Live Engine", annotated)
+            # cv2.imshow("ATVED Live Engine", annotated)
             
             # Press 'q' to quit, 'r' to toggle red light
-            key = cv2.waitKey(1) & 0xFF
+            key = ord('x') & 0xFF
             if key == ord('q'):
                 break
             elif key == ord('r'):

@@ -14,8 +14,10 @@ from sqlalchemy import (
     LargeBinary,
     String,
     Text,
+    JSON,
+    Boolean,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 import uuid
@@ -104,11 +106,27 @@ class Driver(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=True)
     is_registered: Mapped[bool] = mapped_column(default=False)
     traffic_score: Mapped[int] = mapped_column(Integer, default=1000)
+
+    # Aadhaar & Phone (for login + OTP)
+    aadhaar_number: Mapped[str] = mapped_column(String(14), unique=True, index=True, nullable=True)  # Format: XXXX XXXX XXXX
+    phone: Mapped[str] = mapped_column(String(15), nullable=True)
+
+    # Bank Details (simulated for demo)
+    bank_account_masked: Mapped[str] = mapped_column(String(20), nullable=True)  # e.g. XXXX-XXXX-1234
+    bank_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    bank_balance: Mapped[float] = mapped_column(Float, default=50000.0, nullable=True)
+
+    # Vehicle Info
+    vehicle_make: Mapped[str] = mapped_column(String(50), nullable=True)
+    vehicle_model: Mapped[str] = mapped_column(String(50), nullable=True)
+    vehicle_color: Mapped[str] = mapped_column(String(30), nullable=True)
+
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
     registered_plates = relationship("RegisteredPlate", back_populates="driver")
+    fine_transactions = relationship("FineTransaction", back_populates="driver")
 
 
 class RegisteredPlate(Base):
@@ -151,7 +169,7 @@ class Camera(Base):
     longitude: Mapped[float] = mapped_column(Float, nullable=True)
     status: Mapped[CameraStatus] = mapped_column(Enum(CameraStatus, name="camera_status_enum"), default=CameraStatus.OFFLINE)
     stream_url: Mapped[str] = mapped_column(String(1024))
-    config_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    config_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     installed_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -208,9 +226,9 @@ class Evidence(Base):
     sha256_hash: Mapped[str] = mapped_column(String(64), unique=True)
     previous_hash: Mapped[str] = mapped_column(String(64), nullable=True)
     
-    evidence_frames_json: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
-    annotations_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
-    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    evidence_frames_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    annotations_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     
     sealed_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -228,7 +246,7 @@ class AuditLog(Base):
     action: Mapped[AuditAction] = mapped_column(Enum(AuditAction, name="audit_action_enum"))
     actor_type: Mapped[ActorType] = mapped_column(Enum(ActorType, name="actor_type_enum"))
     actor_id: Mapped[str] = mapped_column(String(255))
-    details_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    details_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     ip_address: Mapped[str] = mapped_column(String(45), nullable=True)
     hash_at_action: Mapped[str] = mapped_column(String(64), nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -268,3 +286,41 @@ class PIIAccessLog(Base):
 
     # Relationships
     accessor = relationship("Staff")
+
+
+class FineTransaction(Base):
+    """Records each fine with score-based dynamic pricing."""
+    __tablename__ = "fine_transactions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    driver_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("drivers.id"), index=True)
+    violation_record_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("violation_records.id"), index=True)
+
+    base_fine: Mapped[float] = mapped_column(Float)
+    multiplier: Mapped[float] = mapped_column(Float, default=1.0)
+    final_amount: Mapped[float] = mapped_column(Float)
+    score_at_time: Mapped[int] = mapped_column(Integer)
+    score_category: Mapped[str] = mapped_column(String(20))  # Excellent/Good/Average/Poor/Critical
+
+    bank_deducted: Mapped[bool] = mapped_column(default=False)
+    sms_sent: Mapped[bool] = mapped_column(default=False)
+    receipt_number: Mapped[str] = mapped_column(String(30), unique=True)
+
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    driver = relationship("Driver", back_populates="fine_transactions")
+    violation_record = relationship("ViolationRecord")
+
+
+class OTPSession(Base):
+    """Temporary OTP sessions for Aadhaar-based login."""
+    __tablename__ = "otp_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    aadhaar_number: Mapped[str] = mapped_column(String(14), index=True)
+    otp_code: Mapped[str] = mapped_column(String(6))
+    phone: Mapped[str] = mapped_column(String(15))
+    is_verified: Mapped[bool] = mapped_column(default=False)
+    expires_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())

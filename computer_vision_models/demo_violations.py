@@ -17,7 +17,7 @@ import numpy as np
 from datetime import datetime
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from atved.config import get_settings
 from atved.detection import DetectionResult, FrameDetections

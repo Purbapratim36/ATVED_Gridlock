@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATVED Citizen Portal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Chart.js for the dynamic gauge -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="blob cyan"></div>
+    <div class="blob purple"></div>
+
+    <nav>
+        <div class="logo">ATVED GridLock</div>
+        <div class="nav-links">
+            <a href="index.html" class="active">Citizen Portal</a>
+            <a href="authority.html">Control Room</a>
+            <a href="#" id="navLogout" class="hidden" onclick="logout()">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container fade-in">
+        
+        <!-- LOGIN SECTION -->
+        <div id="loginSection" class="glass-panel" style="max-width: 500px; margin: 100px auto; text-align: center;">
+            <h2 style="margin-bottom: 20px;">🛡️ Citizen Login</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">Access your traffic score and automatic deductions.</p>
+            
+            <div id="stepAadhaar">
+                <input type="text" id="aadhaarInput" class="glass-input" placeholder="Enter 12-digit Aadhaar Number" style="margin-bottom: 20px;">
+                <button class="btn-glow" onclick="requestOTP()" style="width: 100%;">Get Secure OTP</button>
+                <p id="loginError" style="color: var(--danger); margin-top: 15px; font-size: 14px;"></p>
+            </div>
+
+            <div id="stepOTP" class="hidden">
+                <p id="otpMessage" style="color: var(--success); font-weight: bold; margin-bottom: 10px;"></p>
+                <div style="background: rgba(0,240,255,0.1); border: 1px solid var(--accent-primary); padding: 10px; border-radius: 8px; margin-bottom: 20px;">
+                    <small style="color: var(--accent-primary);">Demo OTP Generated: <strong id="demoOtpHint"></strong></small>
+                </div>
+                <input type="text" id="otpInput" class="glass-input" placeholder="Enter 6-digit OTP" style="margin-bottom: 20px; text-align: center; letter-spacing: 5px; font-weight: bold;">
+                <button class="btn-glow" onclick="verifyOTP()" style="width: 100%;">Verify & Login</button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD SECTION -->
+        <div id="dashboardSection" class="hidden">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px;">
+                <div>
+                    <h1 style="font-size: 32px; margin-bottom: 5px;">Welcome back, <span id="driverName" style="color: var(--accent-primary);"></span></h1>
+                    <p style="color: var(--text-muted);">ID: <span id="driverAadhaar"></span> &nbsp;|&nbsp; Phone: <span id="driverPhone"></span></p>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Score Card -->
+                <div class="glass-panel metric-card" style="text-align: center;">
+                    <h3>Dynamic Traffic Score</h3>
+                    <div style="position: relative; width: 250px; margin: 20px auto;">
+                        <canvas id="scoreChart"></canvas>
+                        <div style="position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                            <h1 id="scoreValue" style="font-size: 48px;">--</h1>
+                            <span id="scoreCategory" class="tag" style="background: rgba(0,255,0,0.2); color: #0f0;">Excellent</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 14px;">Multiplier: <strong id="scoreMultiplier" style="color: white;">1.0x</strong> fine rate applies.</p>
+                </div>
+
+                <!-- Bank Integration Card -->
+                <div class="glass-panel metric-card" style="display: flex; flex-direction: column; justify-content: center;">
+                    <h3>Linked Bank Account</h3>
+                    <h2 id="bankName" style="margin-bottom: 5px;">--</h2>
+                    <p id="bankAccount" style="color: var(--text-muted); font-family: monospace; font-size: 18px; letter-spacing: 2px; margin-bottom: 20px;">XXXX-XXXX-XXXX</p>
+                    <h3>Live Balance</h3>
+                    <h1 id="bankBalance" style="color: var(--success);">₹--</h1>
+                    
+                    <div style="margin-top: 30px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                        <h3>Registered Vehicles</h3>
+                        <p id="vehicleDetails" style="font-size: 16px;">--</p>
+                        <div id="platesContainer" style="margin-top: 10px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fine History -->
+            <div class="glass-panel" style="margin-top: 30px;">
+                <h3 style="margin-bottom: 20px;">📝 Automatic Deduction History</h3>
+                <div style="overflow-x: auto;">
+                    <table id="transactionsTable">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Violation</th>
+                                <th>Amount Deducted</th>
+                                <th>Multiplier</th>
+                                <th>E-Challan Receipt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

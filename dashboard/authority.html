@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATVED Control Room</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="blob purple" style="top: 0; left: -100px;"></div>
+
+    <nav>
+        <div class="logo">ATVED Authority</div>
+        <div class="nav-links">
+            <a href="index.html">Citizen Portal</a>
+            <a href="authority.html" class="active">Control Room</a>
+        </div>
+    </nav>
+
+    <div class="container fade-in" style="max-width: 1400px; margin-top: 30px;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <div>
+                <h1 style="font-size: 32px; margin-bottom: 5px;">🚨 Live Control Room</h1>
+                <p style="color: var(--text-muted);">Real-time monitoring, analytics, and network health.</p>
+            </div>
+            <span class="tag" style="background: rgba(0, 240, 255, 0.2); color: var(--accent-primary); border: 1px solid var(--accent-primary);">Live Connection Active</span>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid-4" style="margin-bottom: 30px;">
+            <div class="glass-panel metric-card">
+                <h3>Fines Issued</h3>
+                <h1 id="statFines">--</h1>
+            </div>
+            <div class="glass-panel metric-card">
+                <h3>Revenue Generated</h3>
+                <h1 id="statRevenue" style="background: linear-gradient(90deg, #fff, var(--success)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">₹--</h1>
+            </div>
+            <div class="glass-panel metric-card">
+                <h3>Pending Collection</h3>
+                <h1 id="statPending" style="background: linear-gradient(90deg, #fff, var(--warning)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">₹--</h1>
+            </div>
+            <div class="glass-panel metric-card">
+                <h3>Registered Drivers</h3>
+                <h1 id="statDrivers">--</h1>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <!-- Map -->
+            <div class="glass-panel">
+                <h3 style="margin-bottom: 15px;">📍 Camera Network (Guwahati)</h3>
+                <div id="map" style="height: 450px; border-radius: 12px; border: 1px solid var(--glass-border);"></div>
+            </div>
+
+            <!-- Feed -->
+            <div class="glass-panel" style="overflow-y: auto; height: 535px;">
+                <h3 style="margin-bottom: 15px;">🔴 Recent AI Violations</h3>
+                <table id="violationsTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Driver</th>
+                            <th>Score</th>
+                            <th>Violation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Loaded via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="js/authority.js"></script>
+</body>
+</html>

@@ -13,7 +13,7 @@ import requests
 import cv2
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from ultralytics import YOLO
 from atved.config import get_settings
