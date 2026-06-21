@@ -1,0 +1,207 @@
+# =============================================================================
+# ATVED Base Configuration
+# Environment-specific overrides in development.yaml / staging.yaml / production.yaml
+# =============================================================================
+
+app:
+  name: "ATVED"
+  version: "0.1.0"
+  description: "Automated Traffic Violation Evidence & Detection Platform"
+  debug: false
+  log_level: "INFO"
+  timezone: "UTC"
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+
+database:
+  host: "localhost"
+  port: 5432
+  name: "atved"
+  user: "atved"
+  password: ""  # Override via env var ATVED_DB_PASSWORD
+  pool_size: 20
+  max_overflow: 10
+  echo: false
+  ssl_mode: "prefer"
+
+redis:
+  url: "redis://localhost:6379/0"
+  max_connections: 50
+
+kafka:
+  bootstrap_servers: "localhost:9092"
+  topics:
+    frames: "camera-frames"
+    violations: "violation-events"
+    evidence: "evidence-records"
+    alerts: "system-alerts"
+  consumer_group: "inference-workers"
+  max_poll_records: 50
+  session_timeout_ms: 30000
+  heartbeat_interval_ms: 10000
+
+storage:
+  backend: "s3"  # s3 | minio | filesystem
+  endpoint: "http://localhost:9000"
+  access_key: ""  # Override via env var
+  secret_key: ""  # Override via env var
+  region: "us-east-1"
+  buckets:
+    evidence: "atved-evidence"
+    raw_frames: "atved-raw-frames"
+    models: "atved-models"
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+
+inference:
+  device: "cuda:0"
+  batch_size: 16
+  num_workers: 4
+  detection:
+    model: "yolov8l"
+    weights_path: "models/detection/yolov8l.pt"
+    confidence_threshold: 0.5
+    nms_threshold: 0.45
+    input_size: [640, 640]
+    classes:
+      - car
+      - motorcycle
+      - bus
+      - truck
+      - van
+      - auto_rickshaw
+      - bicycle
+      - pedestrian
+      - rider
+      - driver
+  tracking:
+    algorithm: "bytetrack"
+    track_thresh: 0.5
+    track_buffer: 30
+    match_thresh: 0.8
+    frame_rate: 5
+
+violations:
+  helmet:
+    enabled: true
+    min_confidence: 0.75
+    min_consecutive_frames: 3
+  seatbelt:
+    enabled: true
+    min_confidence: 0.70
+    min_visibility_score: 0.6
+  triple_riding:
+    enabled: true
+    min_confidence: 0.80
+    min_consecutive_frames: 3
+    max_riders_threshold: 2
+  wrong_side:
+    enabled: true
+    min_confidence: 0.80
+    direction_deviation_degrees: 135
+    min_duration_seconds: 2.0
+  stop_line:
+    enabled: true
+    min_confidence: 0.80
+    grace_period_ms: 500
+  red_light:
+    enabled: true
+    min_confidence: 0.85
+    signal_confirm_frames: 3
+    grace_period_ms: 500
+    right_turn_on_red_allowed: false
+  illegal_parking:
+    enabled: true
+    min_confidence: 0.75
+    violation_threshold_seconds: 300
+    congestion_filter: true
+
+plate_recognition:
+  detector:
+    weights_path: "models/plate_ocr/plate_detector.pt"
+    confidence_threshold: 0.6
+  ocr:
+    engine: "paddleocr"
+    lang: "en"
+    use_gpu: true
+  super_resolution:
+    enabled: true
+    min_plate_width_px: 64
+    model: "real_esrgan_x2"
+  post_correction:
+    jurisdiction: "IN"  # ISO 3166-1 alpha-2
+    plate_formats:
+      IN:
+        patterns:
+          - "^[A-Z]{2}\\s?\\d{1,2}\\s?[A-Z]{1,3}\\s?\\d{4}$"
+          - "^[A-Z]{2}\\s?\\d{2}\\s?[A-Z]{2}\\s?\\d{4}$"
+        examples: ["DL 3C AB 1234", "MH 12 DE 5678", "KA 01 MA 9999"]
+      US:
+        patterns:
+          - "^[A-Z0-9]{5,8}$"
+        examples: ["ABC1234", "7ABC123"]
+
+camera:
+  max_concurrent: 200
+  frame_rate_target: 5
+  max_buffer_frames: 30
+  health_check_interval_seconds: 10
+  tamper_detection:
+    enabled: true
+    check_every_nth_frame: 10
+    tamper_threshold: 0.8
+    consecutive_checks_for_alert: 3
+  heartbeat:
+    timeout_seconds: 30
+    degraded_decode_error_rate: 0.10
+    degraded_frame_drop_rate: 0.20
+
+evidence:
+  hash_algorithm: "sha256"
+  seal_type: "append_only_log"
+  confidence_triage:
+    auto_queue_threshold: 0.95
+    standard_threshold: 0.80
+    low_priority_threshold: 0.60
+    discard_threshold: 0.60
+
+compliance:
+  legal_basis: "legitimate_interest"
+  jurisdiction: "IN"
+
+retention:
+  violation_evidence_days: 365
+  non_violation_hours: 72
+  raw_buffer_hours: 24
+  audit_log_years: 7
+  pii_access_log_years: 7
+  cleanup_interval_minutes: 60
+
+appeals:
+  window_days: 30
+  max_escalation_levels: 2
+
+auth:
+  jwt_algorithm: "HS256"
+  jwt_expiry_minutes: 60
+  password_hash_scheme: "bcrypt"
+  mfa_required_for_admin: true
+
+observability:
+  metrics:
+    enabled: true
+    port: 9090
+  tracing:
+    enabled: true
+    endpoint: "http://localhost:4317"
+    sample_rate: 0.1
+  logging:
+    format: "json"
+    correlation_id: true

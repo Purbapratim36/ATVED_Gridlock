@@ -1,0 +1,26 @@
+# Production overrides
+app:
+  debug: false
+  log_level: "WARNING"
+
+server:
+  workers: 8
+  cors_origins: []  # Set per deployment
+
+database:
+  pool_size: 50
+  max_overflow: 20
+  echo: false
+  ssl_mode: "require"
+
+kafka:
+  max_poll_records: 100
+
+camera:
+  max_concurrent: 500
+
+observability:
+  tracing:
+    sample_rate: 0.01
+  logging:
+    format: "json"

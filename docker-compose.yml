@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: atved
+      POSTGRES_PASSWORD: atved_password
+      POSTGRES_DB: atved_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atved"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - ATVED_DB_URL=postgresql+asyncpg://atved:atved_password@db:5432/atved_db
+    volumes:
+      - ./evidence:/app/evidence  # Mount evidence folder to save PDFs and images locally
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATVED | Citizen Portal</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark-theme">
+    <div class="dashboard-container">
+        
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">C</div>
+                    <h1>Citizen Portal</h1>
+                </div>
+                <div class="subtitle">ATVED Traffic Division</div>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="active"><a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg> Dashboard</a></li>
+                <li><a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg> My Challans</a></li>
+                <li><a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Settings</a></li>
+            </ul>
+
+            <div class="user-profile">
+                <div class="avatar" id="userAvatar">JD</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">John Doe</span>
+                    <span class="user-plate" id="userPlates">MH 12 AB 1234</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="search-bar">
+                    <input type="text" placeholder="Search challan ID...">
+                </div>
+                <button class="btn btn-primary" onclick="refreshData()">Refresh Data</button>
+            </header>
+
+            <div class="content-wrapper">
+                <div class="page-header">
+                    <h2>My Overview</h2>
+                </div>
+
+                <div class="score-dashboard glass">
+                    <div class="score-section">
+                        <div class="score-info">
+                            <h3>Traffic Obedience Score</h3>
+                            <p class="score-desc">A measure of your driving safety and rule compliance. Max score is 1000.</p>
+                        </div>
+                        <div class="gauge-container">
+                            <canvas id="scoreGauge"></canvas>
+                            <div class="score-display">
+                                <span id="currentScore" class="score-value">--</span>
+                                <span class="score-label">Points</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-card glass" style="margin-top: 32px;">
+                    <div class="table-header">
+                        <h3>Recent Challans</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="challansTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Violation Type</th>
+                                    <th>Vehicle Plate</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data populated by JS -->
+                                <tr><td colspan="5" style="text-align: center; padding: 20px;">Loading data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Dispute Modal -->
+        <div id="disputeModal" class="modal">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h2>Dispute Challan</h2>
+                    <span class="close-btn" onclick="closeDisputeModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p>Challan ID: <span id="disputeChallanId"></span></p>
+                    <textarea id="disputeReason" placeholder="Explain why this challan is incorrect..." rows="4"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeDisputeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitDispute()">Submit Dispute</button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
