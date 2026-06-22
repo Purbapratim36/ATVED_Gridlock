@@ -288,33 +288,42 @@ try:
         fines = []
         for _, row in df.head(50).iterrows():
             fines.append({
-                "created_at": row['created_at'],
-                "driver": driver_map.get(row['driver_id'], {"name": "Unknown", "traffic_score": 0}),
-                "violation": {"violation_type": v_map.get(row['violation_record_id'], "UNKNOWN")},
+                    "violation": {"violation_type": v_map.get(row['violation_record_id'], "UNKNOWN")},
                 "violation_record_id": row['violation_record_id']
             })
             
         traffic_anim_html = """
         <style>
         @keyframes scrollRoad { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        @keyframes driveCar1 { 0% { left: -100px; } 100% { left: 100%; } }
-        @keyframes driveCar2 { 0% { left: -200px; } 100% { left: 100%; } }
-        svg.brutal-car { display: block !important; position: absolute; top: 10px; }
-        .traffic-animation { border-bottom: 4px solid #111; border-top: 4px solid #111; background: #fff; overflow: hidden; position: relative; height: 60px; margin-bottom: 30px; box-shadow: 0px 8px 0px #111; }
+        @keyframes driveBus { 0% { left: -150px; } 100% { left: 100%; } }
+        @keyframes driveCar { 0% { left: -100px; } 100% { left: 100%; } }
+        @keyframes driveBike { 0% { left: -50px; } 100% { left: 100%; } }
+        svg.brutal-car { display: block !important; position: absolute; }
+        .traffic-animation { border-bottom: 4px solid #111; border-top: 4px solid #111; background: #fff; overflow: hidden; position: relative; height: 70px; margin-bottom: 30px; box-shadow: 0px 8px 0px #111; }
         .traffic-animation::before { content: ""; position: absolute; top: 50%; width: 200%; border-top: 4px dashed #111; animation: scrollRoad 2s linear infinite; }
         </style>
         <div class="traffic-animation">
-            <svg class="brutal-car" style="animation: driveCar1 4s linear infinite;" width="60" height="30" viewBox="0 0 60 30">
-                <rect x="0" y="10" width="50" height="20" fill="#00e676" stroke="#111" stroke-width="4"/>
-                <rect x="10" y="0" width="30" height="10" fill="#fff" stroke="#111" stroke-width="4"/>
-                <circle cx="15" cy="30" r="6" fill="#111"/>
-                <circle cx="35" cy="30" r="6" fill="#111"/>
+            <!-- BUS -->
+            <svg class="brutal-car" style="animation: driveBus 8s linear infinite; top: 10px; z-index: 2;" width="100" height="40" viewBox="0 0 100 40">
+                <rect x="0" y="0" width="90" height="30" fill="#00f0ff" stroke="#111" stroke-width="3"/>
+                <rect x="10" y="5" width="15" height="10" fill="#fff" stroke="#111" stroke-width="3"/>
+                <rect x="30" y="5" width="15" height="10" fill="#fff" stroke="#111" stroke-width="3"/>
+                <rect x="50" y="5" width="15" height="10" fill="#fff" stroke="#111" stroke-width="3"/>
+                <rect x="70" y="5" width="15" height="10" fill="#fff" stroke="#111" stroke-width="3"/>
+                <circle cx="20" cy="30" r="6" fill="#111"/><circle cx="70" cy="30" r="6" fill="#111"/>
             </svg>
-            <svg class="brutal-car" style="animation: driveCar2 6s linear infinite; animation-delay: 1.5s;" width="60" height="30" viewBox="0 0 60 30">
-                <rect x="0" y="10" width="50" height="20" fill="#ffb300" stroke="#111" stroke-width="4"/>
-                <rect x="10" y="0" width="30" height="10" fill="#fff" stroke="#111" stroke-width="4"/>
-                <circle cx="15" cy="30" r="6" fill="#111"/>
-                <circle cx="35" cy="30" r="6" fill="#111"/>
+            <!-- CAR -->
+            <svg class="brutal-car" style="animation: driveCar 5s linear infinite; animation-delay: 2s; top: 20px; z-index: 3;" width="60" height="30" viewBox="0 0 60 30">
+                <rect x="0" y="10" width="50" height="20" fill="#ff1744" stroke="#111" stroke-width="3"/>
+                <rect x="10" y="0" width="30" height="10" fill="#fff" stroke="#111" stroke-width="3"/>
+                <circle cx="15" cy="30" r="6" fill="#111"/><circle cx="35" cy="30" r="6" fill="#111"/>
+            </svg>
+            <!-- BIKE -->
+            <svg class="brutal-car" style="animation: driveBike 3s linear infinite; animation-delay: 1s; top: 30px; z-index: 4;" width="40" height="30" viewBox="0 0 40 30">
+                <line x1="5" y1="20" x2="25" y2="20" stroke="#111" stroke-width="3"/>
+                <line x1="15" y1="20" x2="10" y2="10" stroke="#111" stroke-width="3"/>
+                <rect x="5" y="0" width="10" height="10" fill="#ffea00" stroke="#111" stroke-width="3"/>
+                <circle cx="5" cy="20" r="5" fill="none" stroke="#111" stroke-width="3"/><circle cx="25" cy="20" r="5" fill="none" stroke="#111" stroke-width="3"/>
             </svg>
         </div>
         """
