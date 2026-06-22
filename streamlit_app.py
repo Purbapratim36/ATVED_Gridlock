@@ -155,25 +155,33 @@ try:
             function updateScoreUI(score) {{
                 document.getElementById('scoreValue').innerText = score;
                 
-                let cat = "Excellent"; let color = "#00e676"; let mult = 1.0;
-                let offset = 220 - (220 * (score / 1000));
+                let cat = "EXCELLENT"; let color = "#00e676"; let mult = 1.0;
                 
-                if (score < 300) {{ cat = "SUSPENDED"; color = "#ff1744"; mult = 3.0; offset = 220; }}
+                if (score < 300) {{ cat = "SUSPENDED"; color = "#ff1744"; mult = 3.0; }}
                 else if (score < 500) {{ cat = "POOR"; color = "#ff1744"; mult = 2.0; }}
-                else if (score < 700) {{ cat = "WARNING"; color = "#ffb300"; mult = 1.5; }}
+                else if (score < 700) {{ cat = "WARNING"; color = "#ffea00"; mult = 1.5; }}
                 
                 const catElem = document.getElementById('scoreCategory');
                 catElem.innerText = cat;
-                catElem.style.background = color + '33';
-                catElem.style.color = color;
-                catElem.style.border = '1px solid ' + color;
-                document.getElementById('scoreMultiplier').innerText = mult + "x";
+                catElem.style.background = color;
+                catElem.style.color = '#111';
+                catElem.style.border = '2px solid #111';
+                catElem.style.boxShadow = '4px 4px 0px #111';
                 
-                const arc = document.getElementById('scoreGaugeArc');
-                arc.style.stroke = color;
-                arc.style.transition = "all 1s cubic-bezier(0.4, 0, 0.2, 1)";
-                arc.style.strokeDashoffset = offset;
-                arc.style.filter = `drop-shadow(0 0 10px ${{color}})`;
+                document.getElementById('scoreMultiplier').innerText = mult + "x";
+                document.getElementById('scoreValue').style.textShadow = '4px 4px 0px ' + color;
+                
+                const blocks = document.getElementsByClassName('score-block');
+                const activeBlocks = Math.ceil(score / 100);
+                for(let i=0; i<10; i++) {{
+                    if (i < activeBlocks) {{
+                        blocks[i].style.background = color;
+                        blocks[i].style.border = '2px solid #111';
+                    }} else {{
+                        blocks[i].style.background = '#fff';
+                        blocks[i].style.border = '2px solid #ccc';
+                    }}
+                }}
             }}
             
             window.payChallan = function(id, amount, btn) {{

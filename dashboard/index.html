@@ -59,22 +59,32 @@
 
             <div class="grid-2">
                 <!-- Score Card -->
-                <div class="glass-panel metric-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center;">
-                    <h3 style="letter-spacing: 2px;">Dynamic Traffic Score</h3>
-                    <div class="gauge-container" style="margin: 30px auto;">
-                        <svg viewBox="0 0 200 100" width="100%" height="100%">
-                            <!-- Background Arc -->
-                            <path class="gauge-background" d="M 20 90 A 70 70 0 0 1 180 90" />
-                            <!-- Progress Arc -->
-                            <path id="scoreGaugeArc" class="gauge-progress gauge-glow" d="M 20 90 A 70 70 0 0 1 180 90" stroke-dasharray="220" stroke-dashoffset="220" />
-                        </svg>
-                        <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); text-align: center;">
-                            <h1 id="scoreValue" style="font-size: 56px; margin-bottom: -5px;">--</h1>
-                            <span id="scoreCategory" class="badge badge-success">Excellent</span>
-                        </div>
-                    </div>
-                    <p style="color: var(--text-muted); font-size: 14px; margin-top: 10px;">Multiplier: <strong id="scoreMultiplier" style="color: white; font-size: 16px;">1.0x</strong> fine rate applies.</p>
-                </div>
+                  <div class="glass-panel metric-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden;">
+                      <h3 style="letter-spacing: 2px;">Dynamic Traffic Score</h3>
+                      
+                      <div id="brutalScoreDisplay" style="margin: 30px auto; width: 100%; max-width: 350px;">
+                          <div style="font-size: 90px; font-weight: 900; line-height: 0.9; letter-spacing: -5px; color: #111; text-shadow: 4px 4px 0px #ffea00;" id="scoreValue">--</div>
+                          <div style="margin-top: 15px; margin-bottom: 30px;">
+                              <span id="scoreCategory" class="badge">--</span>
+                          </div>
+                          
+                          <!-- Brutalist Matrix Meter -->
+                          <div style="display: flex; gap: 4px; margin-top: 20px; height: 50px; border: 4px solid #111; padding: 4px; background: #111; transform: skewX(-10deg);">
+                              <div class="score-block" style="flex: 1; background: #fff; border: 2px solid #111;"></div>
+                              <div class="score-block" style="flex: 1; background: #fff; border: 2px solid #111;"></div>
+                              <div class="score-block" style="flex: 1; background: #fff; border: 2px solid #111;"></div>
+                              <div class="score-block" style="flex: 1; background: #fff; border: 2px solid #111;"></div>
+                              <div class="score-block" style="flex: 1; background: #fff; border: 2px solid #111;"></div>
+                              <div class="score-block" style="flex: 1; background: #fff; border: 2px solid #111;"></div>
+                              <div class="score-block" style="flex: 1; background: #fff; border: 2px solid #111;"></div>
+                              <div class="score-block" style="flex: 1; background: #fff; border: 2px solid #111;"></div>
+                              <div class="score-block" style="flex: 1; background: #fff; border: 2px solid #111;"></div>
+                              <div class="score-block" style="flex: 1; background: #fff; border: 2px solid #111;"></div>
+                          </div>
+                      </div>
+                      
+                      <p style="color: #111; font-size: 16px; margin-top: 10px; font-weight: 700;">MULTIPLIER: <strong id="scoreMultiplier" style="color: #ff1744; font-size: 20px; background: #111; padding: 2px 8px; border-radius: 0;">1.0x</strong> FINE RATE.</p>
+                  </div>
 
                 <!-- Bank Integration Card -->
                 <div class="glass-panel metric-card" style="display: flex; flex-direction: column; justify-content: center;">
