@@ -2,6 +2,9 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import json
+import base64
+import glob
+import os
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="ATVED GridLock Portals", layout="wide", initial_sidebar_state="expanded")
@@ -318,6 +321,20 @@ try:
         # Authority JS Injection
         auth_js = f"""
         <script>
+        // Slideshow logic
+        function startSlideshow() {{
+            let slides = document.getElementsByClassName("det-slide");
+            if(slides.length === 0) return;
+            let slideIndex = 0;
+            setInterval(() => {{
+                for (let i = 0; i < slides.length; i++) {{ slides[i].style.display = "none"; }}
+                slideIndex++;
+                if (slideIndex > slides.length) {{ slideIndex = 1; }}
+                slides[slideIndex-1].style.display = "block";
+            }}, 2000);
+            slides[0].style.display = "block";
+        }}
+        
         // Animate counter
         function animateValue(id, start, end, duration, prefix) {{
             if (start === end) return;
@@ -397,11 +414,31 @@ try:
                 `;
                 tbody.appendChild(tr);
             }});
+            
+            startSlideshow();
         }});
         </script>
         """
         
-        components.html(html_content + auth_js, height=1200, scrolling=True)
+        # Load Images from demo_images folder
+        image_files = glob.glob("demo_images/*.jpg") + glob.glob("demo_images/*.png") + glob.glob("demo_images/*.jpeg")
+        slideshow_html = ""
+        if image_files:
+            slideshow_html += "<div class='glass-panel' style='margin-bottom: 30px;'><h3>📸 Live AI Detections</h3><div style='background: #111; padding: 10px; border: 4px solid #111; text-align: center; height: 300px; display: flex; align-items: center; justify-content: center; overflow: hidden;'>"
+            for img_path in image_files:
+                try:
+                    with open(img_path, "rb") as img_file:
+                        b64_str = base64.b64encode(img_file.read()).decode()
+                        ext = img_path.split('.')[-1]
+                        slideshow_html += f"<img class='det-slide' src='data:image/{ext};base64,{b64_str}' style='display:none; max-width: 100%; max-height: 280px;'>"
+                except Exception:
+                    pass
+            slideshow_html += "</div></div>"
+        
+        # Inject slideshow above the grid-2
+        html_content = html_content.replace('<div class="grid-2">', slideshow_html + '<div class="grid-2">')
+        
+        components.html(html_content + auth_js, height=1500, scrolling=True)
 
 except Exception as e:
     st.error(f"Error: {e}")
