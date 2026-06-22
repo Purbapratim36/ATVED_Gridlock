@@ -1,114 +1,164 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+import json
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="ATVED GridLock Control Room", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ATVED Citizen Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# Inject Custom Glassmorphism CSS exactly matching the dashboard
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
-
-/* Hide Streamlit Default Elements */
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 footer {visibility: hidden;}
-.stApp {
-    background: radial-gradient(circle at top right, #110022, #07090f);
-    color: #f0f0f5;
-    font-family: 'Outfit', sans-serif;
-}
-
-/* Glass Panels */
-.glass-panel {
-    background: rgba(20, 25, 40, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    margin-bottom: 20px;
-}
-
-/* Typography & Colors */
-h1, h2, h3 { color: #f0f0f5 !important; font-family: 'Outfit', sans-serif !important; }
-.metric-value {
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin: 10px 0;
-    background: linear-gradient(90deg, #fff, #00f0ff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-.revenue { background: linear-gradient(90deg, #fff, #00e676); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.pending { background: linear-gradient(90deg, #fff, #ffb300); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-/* Custom Table */
-table { width: 100%; border-collapse: separate; border-spacing: 0; color: #f0f0f5; margin-top: 15px; }
-th { text-align: left; padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.08); color: #8a8d9b; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
-td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.95rem; }
-tr:hover { background: rgba(255,255,255,0.02); }
-
-.tag { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-.tag-helmet { background: rgba(0,240,255,0.2); color: #00f0ff; border: 1px solid #00f0ff; }
+.stApp { background-color: #07090f; }
 </style>
-""", unsafe_allow_html=True)
-
-# Top Header
-st.markdown("""
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: -30px; margin-bottom: 30px;">
-    <div>
-        <h1 style="font-size: 32px; margin-bottom: 5px;">Live Control Room</h1>
-        <p style="color: #8a8d9b;">Real-time monitoring, analytics, and network health.</p>
-    </div>
-    <span class="tag tag-helmet">Live Connection Active</span>
-</div>
 """, unsafe_allow_html=True)
 
 try:
     conn = sqlite3.connect('atved.db')
     
-    # Calculate Metrics
-    df = pd.read_sql_query('SELECT * FROM fine_transactions ORDER BY created_at DESC', conn)
-    drivers = pd.read_sql_query('SELECT * FROM drivers', conn)
+    # Fetch Drivers for Streamlit Dropdown
+    drivers_df = pd.read_sql_query("SELECT id, name, license_number, traffic_score, phone, bank_name, bank_balance FROM drivers", conn)
+    driver_options = drivers_df['name'].tolist()
     
-    fines_issued = len(df)
-    revenue = df[df['bank_deducted'] == 1]['final_amount'].sum() if not df.empty else 0
-    pending = df[df['bank_deducted'] == 0]['final_amount'].sum() if not df.empty else 0
-    total_drivers = len(drivers)
-
-    # Render KPI Cards in a Glass Grid
-    c1, c2, c3, c4 = st.columns(4)
-    c1.markdown(f'<div class="glass-panel"><h3>Fines Issued</h3><div class="metric-value">{fines_issued}</div></div>', unsafe_allow_html=True)
-    c2.markdown(f'<div class="glass-panel"><h3>Revenue Generated</h3><div class="metric-value revenue">₹{revenue:,.0f}</div></div>', unsafe_allow_html=True)
-    c3.markdown(f'<div class="glass-panel"><h3>Pending Collection</h3><div class="metric-value pending">₹{pending:,.0f}</div></div>', unsafe_allow_html=True)
-    c4.markdown(f'<div class="glass-panel"><h3>Registered Drivers</h3><div class="metric-value">{total_drivers}</div></div>', unsafe_allow_html=True)
-
-    # Render Glass Tables
-    col_left, col_right = st.columns([1.5, 1])
+    st.markdown("<h3 style='color: #8a8d9b; margin-top: -30px;'>Select a Driver to View their Citizen Dashboard:</h3>", unsafe_allow_html=True)
+    selected_name = st.selectbox("", driver_options, label_visibility="collapsed")
     
-    with col_left:
-        st.markdown('<div class="glass-panel"><h3>🚨 Live Violation Feed</h3>', unsafe_allow_html=True)
-        if not df.empty:
-            html = "<table><tr><th>Time</th><th>Receipt ID</th><th>Amount</th><th>Status</th></tr>"
-            for _, row in df.head(15).iterrows():
-                status = "Paid" if row['bank_deducted'] else "Pending"
-                color = "#00e676" if row['bank_deducted'] else "#ffb300"
-                html += f"<tr><td>{row['created_at'][:19]}</td><td>{row['receipt_number']}</td><td>₹{row['final_amount']}</td><td><span style='color:{color}; font-weight:bold; background:rgba(255,255,255,0.05); padding: 4px 8px; border-radius:4px;'>{status}</span></td></tr>"
-            html += "</table></div>"
-            st.markdown(html, unsafe_allow_html=True)
-        else:
-            st.markdown("<p style='color:#8a8d9b'>No violations recorded yet.</p></div>", unsafe_allow_html=True)
+    if selected_name:
+        driver_row = drivers_df[drivers_df['name'] == selected_name].iloc[0]
+        driver_id = driver_row['id']
+        
+        # Fetch Vehicles
+        vehicles_df = pd.read_sql_query(f"SELECT number_plate, make, model FROM vehicles WHERE owner_id = {driver_id}", conn)
+        vehicle_plates = vehicles_df['number_plate'].tolist()
+        
+        # Fetch Fines
+        fines_df = pd.read_sql_query(f"SELECT t.*, v.violation_type FROM fine_transactions t LEFT JOIN violation_records v ON t.violation_record_id = v.id WHERE t.driver_id = {driver_id} ORDER BY t.created_at DESC", conn)
+        
+        # Format for JS
+        txns = []
+        for _, row in fines_df.iterrows():
+            txns.append({
+                "created_at": row['created_at'],
+                "violation": {"violation_type": row['violation_type'] if pd.notnull(row['violation_type']) else "UNKNOWN"},
+                "final_amount": row['final_amount'],
+                "multiplier": row['multiplier'],
+                "receipt_number": row['receipt_number'],
+                "bank_deducted": row['bank_deducted']
+            })
             
-    with col_right:
-        st.markdown('<div class="glass-panel"><h3>🚦 Driver Traffic Scores</h3>', unsafe_allow_html=True)
-        if not drivers.empty:
-            html = "<table><tr><th>Name</th><th>Score</th></tr>"
-            for _, row in drivers.sort_values('traffic_score').head(15).iterrows():
-                html += f"<tr><td>{row['name']}</td><td style='font-family:monospace; color:#00f0ff; font-weight:bold;'>{row['traffic_score']}</td></tr>"
-            html += "</table></div>"
-            st.markdown(html, unsafe_allow_html=True)
+        driver_data = {
+            "name": driver_row['name'],
+            "license_number": driver_row['license_number'],
+            "phone": driver_row['phone'],
+            "traffic_score": driver_row['traffic_score'],
+            "bank_name": driver_row['bank_name'],
+            "bank_balance": driver_row['bank_balance'],
+            "vehicles": [{"make": vehicles_df.iloc[0]['make'], "model": vehicles_df.iloc[0]['model']}] if not vehicles_df.empty else [],
+            "plates": vehicle_plates
+        }
+        
+        # Read the exact UI files
+        with open('dashboard/index.html', 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        with open('dashboard/css/style.css', 'r', encoding='utf-8') as f:
+            css_content = f.read()
+            
+        # Inject CSS
+        html_content = html_content.replace('<link rel="stylesheet" href="css/style.css">', f'<style>{css_content}</style>')
+        # Remove original JS
+        html_content = html_content.replace('<script src="js/app.js"></script>', '')
+        
+        # Inject dynamic JS to bypass login and populate the exact DOM elements
+        mock_js = f"""
+        <script>
+        document.addEventListener("DOMContentLoaded", function() {{
+            // Bypass Login Screen
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            document.getElementById('navLogout').style.display = 'none';
+            
+            const driverData = {json.dumps(driver_data)};
+            const txns = {json.dumps(txns)};
+            
+            // Populate Identical UI
+            document.getElementById('driverName').innerText = driverData.name;
+            document.getElementById('driverAadhaar').innerText = "XXXX XXXX " + String(driverData.license_number).slice(-4);
+            document.getElementById('driverPhone').innerText = String(driverData.phone).replace(/\\d(?=\\d{{4}})/g, "*");
+            document.getElementById('bankName').innerText = driverData.bank_name;
+            document.getElementById('bankBalance').innerText = "₹" + driverData.bank_balance.toLocaleString();
+            
+            if (driverData.vehicles.length > 0) {{
+                document.getElementById('vehicleDetails').innerText = driverData.vehicles[0].make + " " + driverData.vehicles[0].model;
+            }} else {{
+                document.getElementById('vehicleDetails').innerText = "No registered vehicles";
+            }}
+            
+            const platesDiv = document.getElementById('platesContainer');
+            driverData.plates.forEach(p => {{
+                const span = document.createElement('span');
+                span.className = 'tag';
+                span.style.marginRight = '5px';
+                span.style.background = 'rgba(255,255,255,0.1)';
+                span.style.border = '1px solid rgba(255,255,255,0.2)';
+                span.style.color = 'white';
+                span.innerText = p;
+                platesDiv.appendChild(span);
+            }});
+            
+            // Replicate Dynamic Score Gauge
+            const score = driverData.traffic_score;
+            document.getElementById('scoreValue').innerText = score;
+            
+            let cat = "Excellent"; let color = "#00e676"; let mult = 1.0;
+            let offset = 220 - (220 * (score / 1000));
+            
+            if (score < 300) {{ cat = "Suspended"; color = "#ff1744"; mult = 3.0; offset = 220; }}
+            else if (score < 500) {{ cat = "POOR"; color = "#ff1744"; mult = 2.0; }}
+            else if (score < 700) {{ cat = "WARNING"; color = "#ffb300"; mult = 1.5; }}
+            
+            const catElem = document.getElementById('scoreCategory');
+            catElem.innerText = cat;
+            catElem.style.background = color + '33';
+            catElem.style.color = color;
+            catElem.style.border = '1px solid ' + color;
+            document.getElementById('scoreMultiplier').innerText = mult + "x";
+            
+            const arc = document.getElementById('scoreGaugeArc');
+            arc.style.stroke = color;
+            arc.style.strokeDashoffset = offset;
+            arc.style.filter = `drop-shadow(0 0 10px ${{color}})`;
+            
+            // Replicate Table Exactly
+            const tbody = document.querySelector('#transactionsTable tbody');
+            txns.forEach(t => {{
+                const tr = document.createElement('tr');
+                const d = new Date(t.created_at);
+                const dateStr = d.toLocaleDateString() + " " + d.toLocaleTimeString([], {{hour: '2-digit', minute:'2-digit'}});
+                const vType = t.violation.violation_type.toUpperCase();
+                
+                let actionHtml = `<a href="#" style="padding: 6px 12px; background: rgba(255,255,255,0.05); color: #8a8d9b; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; text-decoration: none; font-size: 0.8rem; pointer-events: none;">Paid - Download PDF</a>`;
+                if(!t.bank_deducted) {{
+                    actionHtml = `<button style="padding: 6px 12px; background: #00f0ff; color: #000; border: none; border-radius: 4px; font-weight: bold;">Pay Challan</button>`;
+                }}
+                
+                tr.innerHTML = `
+                    <td>${{dateStr}}</td>
+                    <td><span class="tag" style="background: rgba(255,23,68,0.2); color: #ff1744; border: 1px solid #ff1744;">${{vType}}</span></td>
+                    <td style="font-weight: bold;">- ₹${{t.final_amount.toLocaleString()}}</td>
+                    <td>${{t.multiplier}}x</td>
+                    <td style="font-family: monospace; color: #00f0ff;">${{t.receipt_number}}</td>
+                    <td>${{actionHtml}}</td>
+                `;
+                tbody.appendChild(tr);
+            }});
+        }});
+        </script>
+        """
+        
+        final_html = html_content + mock_js
+        components.html(final_html, height=1200, scrolling=True)
 
 except Exception as e:
-    st.error(f"Could not load database: {e}")
+    st.error(f"Error: {e}")
