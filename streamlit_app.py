@@ -167,20 +167,31 @@ try:
                 catElem.style.color = '#111';
                 catElem.style.border = '2px solid #111';
                 catElem.style.boxShadow = '4px 4px 0px #111';
-                
                 document.getElementById('scoreMultiplier').innerText = mult + "x";
                 document.getElementById('scoreValue').style.textShadow = '4px 4px 0px ' + color;
                 
-                const blocks = document.getElementsByClassName('score-block');
-                const activeBlocks = Math.ceil(score / 100);
-                for(let i=0; i<10; i++) {{
-                    if (i < activeBlocks) {{
-                        blocks[i].style.background = color;
-                        blocks[i].style.border = '2px solid #111';
-                    }} else {{
-                        blocks[i].style.background = '#fff';
-                        blocks[i].style.border = '2px solid #ccc';
-                    }}
+                // Traffic Light Logic
+                const lightRed = document.getElementById('lightRed');
+                const lightYellow = document.getElementById('lightYellow');
+                const lightGreen = document.getElementById('lightGreen');
+                
+                lightRed.style.background = '#444';
+                lightYellow.style.background = '#444';
+                lightGreen.style.background = '#444';
+                
+                lightRed.style.boxShadow = 'none';
+                lightYellow.style.boxShadow = 'none';
+                lightGreen.style.boxShadow = 'none';
+
+                if (score < 500) {{
+                    lightRed.style.background = '#ff1744';
+                    lightRed.style.boxShadow = '0 0 20px #ff1744';
+                }} else if (score < 700) {{
+                    lightYellow.style.background = '#ffea00';
+                    lightYellow.style.boxShadow = '0 0 20px #ffea00';
+                }} else {{
+                    lightGreen.style.background = '#00e676';
+                    lightGreen.style.boxShadow = '0 0 20px #00e676';
                 }}
             }}
             
