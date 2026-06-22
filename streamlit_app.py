@@ -22,22 +22,48 @@ if st.sidebar.button("🚀 Start AI Video Processing"):
     source = "IP Camera" if stream_type == "Live IP Camera Stream" else "test2.mp4"
     st.sidebar.success(f"Signal sent to Edge Node. YOLOv8 Pipeline initializing on {source}. Please check the local machine display for the live video tracking output.")
 
-# Custom CSS for Streamlit hiding
+# Custom CSS for Streamlit hiding and brutalist sidebar
 st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 footer {visibility: hidden;}
-.stApp { background-color: #07090f; }
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+.stApp { background-color: #f4f4f0; color: #111; font-family: 'Space Mono', monospace; }
+.stSidebar { background-color: #fff; border-right: 4px solid #111; }
+h1, h2, h3, p, label, span { color: #111 !important; font-family: 'Space Mono', monospace !important; }
+.stButton>button { background: #ffea00; color: #111; border: 4px solid #111; border-radius: 0; box-shadow: 4px 4px 0 #111; text-transform: uppercase; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
 try:
     conn = sqlite3.connect('atved.db')
 
-    # Read common UI files
-    with open('dashboard/css/style.css', 'r', encoding='utf-8') as f:
-        css_content = f.read()
+    brutalist_css = """
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+    body { background-color: #f4f4f0 !important; color: #111 !important; font-family: 'Space Mono', monospace !important; }
+    svg { display: none !important; }
+    .blob { display: none !important; }
+    .glass-panel, .glow-card { background: #fff !important; border: 4px solid #111 !important; border-radius: 0 !important; box-shadow: 8px 8px 0px #111 !important; margin-bottom: 30px !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; padding: 30px !important; }
+    nav { background: #fff !important; border-bottom: 4px solid #111 !important; margin-bottom: 40px !important; padding: 20px !important; }
+    .logo { font-size: 30px !important; font-weight: 700 !important; color: #111 !important; text-transform: uppercase !important; letter-spacing: -1px; }
+    h1, h2, h3, p { font-family: 'Space Mono', monospace !important; color: #111 !important; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; }
+    .tag, .badge { border: 2px solid #111 !important; background: #ffea00 !important; color: #111 !important; border-radius: 0 !important; box-shadow: 2px 2px 0px #111; font-weight: bold; display: inline-block; padding: 5px 10px; margin: 2px; }
+    table { border-collapse: collapse; width: 100%; border: 4px solid #111; margin-top: 20px; }
+    th, td { border: 2px solid #111 !important; padding: 15px !important; color: #111 !important; text-align: left; }
+    th { background: #111 !important; color: #fff !important; }
+    tr:nth-child(even) { background: #f4f4f0 !important; }
+    tr { background: #fff !important; }
+    button, a { background: #ffea00 !important; color: #111 !important; border: 3px solid #111 !important; border-radius: 0 !important; box-shadow: 4px 4px 0px #111 !important; text-transform: uppercase; font-weight: bold; padding: 10px 20px; cursor: pointer; text-decoration: none !important; transition: none !important; }
+    button:active, a:active { transform: translate(4px, 4px); box-shadow: 0 0 0 #111 !important; }
+    #scoreValue { font-size: 80px !important; -webkit-text-fill-color: #111 !important; background: none !important; margin-bottom: 20px; line-height: 1; }
+    #bankBalance, #statRevenue, #statPending { font-size: 40px !important; -webkit-text-fill-color: #111 !important; background: none !important; }
+    .gauge-container { border: 4px solid #111; padding: 40px; background: #fff; box-shadow: 8px 8px 0 #111; position: relative; margin-top: 20px; }
+    .gauge-container svg { display: none !important; } /* explicitly hide SVG gauge */
+    .metric-value { font-size: 40px !important; -webkit-text-fill-color: #111 !important; background: none !important; font-weight: bold; }
+    #scoreCategory { margin-top: 10px; display: inline-block; }
+    """
+    css_content = brutalist_css
 
     if portal == "Citizen Dashboard":
         drivers_df = pd.read_sql_query("SELECT id, name, aadhaar_number, traffic_score, phone, bank_name, bank_balance, vehicle_make, vehicle_model, vehicle_color, bank_account_masked FROM drivers", conn)
