@@ -10,6 +10,18 @@ st.sidebar.markdown("## ATVED GridLock Demo")
 st.sidebar.markdown("This Streamlit app provides a static cloud snapshot of the local system for presentation purposes.")
 portal = st.sidebar.radio("Select Portal:", ["Citizen Dashboard", "Authority Control Room"])
 
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📷 Edge Node Configuration")
+st.sidebar.caption("Control the local YOLOv8 processing node.")
+stream_type = st.sidebar.radio("Select Video Source:", ["Pre-recorded Video (test2.mp4)", "Live IP Camera Stream"])
+
+if stream_type == "Live IP Camera Stream":
+    ip_url = st.sidebar.text_input("Enter IP Camera URL:", "http://192.168.1.100:8080/video")
+
+if st.sidebar.button("🚀 Start AI Video Processing"):
+    source = "IP Camera" if stream_type == "Live IP Camera Stream" else "test2.mp4"
+    st.sidebar.success(f"Signal sent to Edge Node. YOLOv8 Pipeline initializing on {source}. Please check the local machine display for the live video tracking output.")
+
 # Custom CSS for Streamlit hiding
 st.markdown("""
 <style>
