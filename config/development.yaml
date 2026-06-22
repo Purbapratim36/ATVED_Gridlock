@@ -1,0 +1,14 @@
+# Development overrides
+app:
+  debug: true
+  log_level: "DEBUG"
+
+database:
+  echo: true
+  ssl_mode: "disable"
+
+observability:
+  tracing:
+    sample_rate: 1.0
+  logging:
+    format: "console"

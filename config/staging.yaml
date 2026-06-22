@@ -1,0 +1,13 @@
+# Staging overrides
+app:
+  debug: false
+  log_level: "INFO"
+
+database:
+  pool_size: 30
+  echo: false
+  ssl_mode: "require"
+
+observability:
+  tracing:
+    sample_rate: 0.5

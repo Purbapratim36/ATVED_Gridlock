@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-[#0B0C10] text-white">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATVED UI Implementation</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#0B0C10',
+                            panel: '#1A1C23',
+                            glass: 'rgba(255, 255, 255, 0.03)',
+                            glassBorder: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        accent: {
+                            cyan: '#00F2FE',
+                            emerald: '#00E676',
+                            coral: '#FF1744',
+                            gold: '#FFD700'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Roboto Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(30, 32, 40, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .neon-text-cyan { text-shadow: 0 0 10px rgba(0, 242, 254, 0.5); }
+        .neon-text-emerald { text-shadow: 0 0 15px rgba(0, 230, 118, 0.5); }
+    </style>
+
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body class="min-h-screen text-slate-200 selection:bg-accent-cyan selection:text-black">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- SVGs & Icons ---
+        const SmartphoneIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+        );
+
+        // --- Main App Component ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('citizen');
+            
+            // Mock State Controllers
+            const [eligibleForMitigation, setEligibleForMitigation] = useState(true);
+            const [highConfidenceAI, setHighConfidenceAI] = useState(true);
+
+            return (
+                <div className="flex flex-col min-h-screen relative overflow-hidden">
+                    {/* Background glow effects */}
+                    <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-accent-cyan rounded-full mix-blend-screen filter blur-[150px] opacity-10 pointer-events-none"></div>
+                    <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-purple-600 rounded-full mix-blend-screen filter blur-[150px] opacity-10 pointer-events-none"></div>
+
+                    {/* Navigation Header */}
+                    <header className="flex justify-between items-center px-8 py-5 border-b border-brand-glassBorder glass-panel sticky top-0 z-50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded bg-gradient-to-br from-accent-cyan to-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(0,242,254,0.4)]">
+                                <span className="font-bold text-black text-sm">A</span>
+                            </div>
+                            <h1 className="text-xl font-bold tracking-wider text-white">
+                                {activeTab === 'citizen' ? 'ATVED GridLock' : 'ATVED Authority'}
+                            </h1>
+                        </div>
+                        
+                        <nav className="flex items-center gap-8 text-sm font-medium text-slate-400">
+                            <button 
+                                onClick={() => setActiveTab('citizen')}
+                                className={`pb-1 border-b-2 transition-colors ${activeTab === 'citizen' ? 'border-accent-cyan text-white neon-text-cyan' : 'border-transparent hover:text-slate-200'}`}
+                            >
+                                Citizen Portal
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('authority')}
+                                className={`pb-1 border-b-2 transition-colors ${activeTab === 'authority' ? 'border-accent-cyan text-white neon-text-cyan' : 'border-transparent hover:text-slate-200'}`}
+                            >
+                                Control Room
+                            </button>
+                            <button className="px-4 py-1.5 rounded bg-brand-glass hover:bg-white/10 border border-brand-glassBorder text-white transition-colors">
+                                Logout
+                            </button>
+                        </nav>
+                    </header>
+
+                    {/* Main Content Area */}
+                    <main className="flex-1 p-8 max-w-7xl w-full mx-auto z-10 relative">
+                        {activeTab === 'citizen' && <CitizenPortal mitigationActive={eligibleForMitigation} />}
+                        {activeTab === 'authority' && <AuthorityPortal highConfidence={highConfidenceAI} />}
+                    </main>
+
+                    {/* Interactive State Controller (Floating Panel) */}
+                    <div className="fixed bottom-8 right-8 glass-panel p-5 rounded-xl border border-brand-glassBorder shadow-2xl z-50 w-80">
+                        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-accent-coral animate-pulse"></div>
+                            System State Controller
+                        </h3>
+                        
+                        <div className="flex items-center justify-between mb-4">
+                            <label className="text-xs text-slate-300">eligible_for_mitigation</label>
+                            <button 
+                                onClick={() => setEligibleForMitigation(!eligibleForMitigation)}
+                                className={`w-10 h-5 rounded-full relative transition-colors ${eligibleForMitigation ? 'bg-accent-emerald' : 'bg-slate-700'}`}
+                            >
+                                <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${eligibleForMitigation ? 'translate-x-5.5 left-1' : 'translate-x-0.5 left-0.5'}`}></div>
+                            </button>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs text-slate-300">ai_confidence &ge; 85</label>
+                            <button 
+                                onClick={() => setHighConfidenceAI(!highConfidenceAI)}
+                                className={`w-10 h-5 rounded-full relative transition-colors ${highConfidenceAI ? 'bg-accent-cyan' : 'bg-slate-700'}`}
+                            >
+                                <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${highConfidenceAI ? 'translate-x-5.5 left-1' : 'translate-x-0.5 left-0.5'}`}></div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- View 1: Citizen Portal ---
+        const CitizenPortal = ({ mitigationActive }) => {
+            return (
+                <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+                    
+                    {/* Row 1: Split Layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Left Card: Dynamic Traffic Score */}
+                        <div className="glass-panel rounded-2xl p-8 flex flex-col items-center justify-center relative overflow-hidden">
+                            <h2 className="text-slate-400 font-medium text-sm tracking-widest uppercase mb-6 w-full text-left">Dynamic Traffic Score</h2>
+                            
+                            {/* Mitigation Badge */}
+                            {mitigationActive && (
+                                <div className="absolute top-8 right-8 border border-accent-gold/50 bg-accent-gold/10 text-accent-gold text-xs px-3 py-1 rounded-full shadow-[0_0_10px_rgba(255,215,0,0.2)] font-medium animate-pulse">
+                                    10% Mitigation Active
+                                </div>
+                            )}
+
+                            {/* Circular Gauge Mock */}
+                            <div className="relative w-48 h-48 flex flex-col items-center justify-center rounded-full border-[6px] border-brand-panel border-t-accent-emerald border-r-accent-emerald border-l-accent-emerald shadow-[0_0_30px_rgba(0,230,118,0.15)] mb-4">
+                                <span className="font-mono text-5xl font-bold text-white neon-text-emerald">980</span>
+                                <div className="mt-2 bg-accent-emerald/20 text-accent-emerald text-[10px] font-bold px-3 py-1 rounded-full border border-accent-emerald/30">
+                                    EXCELLENT
+                                </div>
+                            </div>
+                            
+                            <p className="text-slate-400 text-sm mt-2">Multiplier: <span className="text-white font-medium">1.0x</span> fine rate applies.</p>
+                        </div>
+
+                        {/* Right Card: Account & Vehicle Details */}
+                        <div className="glass-panel rounded-2xl p-8 flex flex-col justify-between">
+                            
+                            {/* Section 1: Bank Account */}
+                            <div className="mb-8">
+                                <h2 className="text-slate-400 font-medium text-xs tracking-widest uppercase mb-3">Linked Bank Account</h2>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white">HDFC Bank</h3>
+                                        <p className="font-mono text-slate-400 text-sm mt-1">XXXX-XXXX-7823</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-slate-400 mb-1">LIVE BALANCE</p>
+                                        <p className="font-mono text-2xl font-bold text-accent-cyan">₹61,000</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="h-px w-full bg-brand-glassBorder mb-8"></div>
+
+                            {/* Section 2: Registered Vehicles */}
+                            <div>
+                                <h2 className="text-slate-400 font-medium text-xs tracking-widest uppercase mb-3">Registered Vehicles</h2>
+                                <div className="flex items-center justify-between bg-brand-panel/50 p-4 rounded-lg border border-brand-glassBorder">
+                                    <p className="text-sm font-medium text-white">Royal Enfield Classic 350 <span className="text-slate-500 block text-xs mt-0.5">(Gunmetal Grey)</span></p>
+                                    <div className="bg-white text-black font-mono font-bold text-sm px-3 py-1.5 rounded shadow-[0_0_10px_rgba(255,255,255,0.2)] border-2 border-slate-300">
+                                        AS 03 PM 7823
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {/* Row 2: Automatic Deduction History */}
+                    <div className="glass-panel rounded-2xl p-8">
+                        <h2 className="text-slate-400 font-medium text-sm tracking-widest uppercase mb-6">Automatic Deduction History</h2>
+                        
+                        <div className="w-full overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="text-xs text-slate-500 uppercase tracking-wider border-b border-brand-glassBorder">
+                                        <th className="pb-4 font-medium">Date & Time</th>
+                                        <th className="pb-4 font-medium">Violation</th>
+                                        <th className="pb-4 font-medium text-right">Amount Deducted</th>
+                                        <th className="pb-4 font-medium text-center">Multiplier</th>
+                                        <th className="pb-4 font-medium">E-Challan Receipt</th>
+                                        <th className="pb-4 font-medium text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm">
+                                    <tr className="border-b border-brand-glassBorder/50 hover:bg-white/5 transition-colors group">
+                                        <td className="py-4 font-mono text-slate-300">6/21/2026 <span className="text-slate-500">01:26 PM</span></td>
+                                        <td className="py-4">
+                                            <span className="bg-accent-coral/20 text-accent-coral border border-accent-coral/30 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider">HELMET</span>
+                                        </td>
+                                        <td className="py-4 font-mono font-medium text-accent-coral text-right">- ₹1,000</td>
+                                        <td className="py-4 text-center text-slate-400">1x</td>
+                                        <td className="py-4 font-mono text-accent-cyan/80">ATVED_2026_3RD2D1</td>
+                                        <td className="py-4 text-right">
+                                            <button className="bg-accent-cyan text-black hover:bg-white transition-colors font-semibold text-xs px-4 py-1.5 rounded-full shadow-[0_0_10px_rgba(0,242,254,0.3)]">
+                                                Download PDF
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- View 2: Authority Control Room ---
+        const AuthorityPortal = ({ highConfidence }) => {
+            const [violations, setViolations] = useState([
+                { time: "01:26 PM", driver: "Purba Pratim Mahanta", score: "980", type: "HELMET", isAuto: true },
+                { time: "01:25 PM", driver: "Owner of KA 01 HG 9999", score: "760", type: "HELMET", isAuto: false },
+                { time: "01:25 PM", driver: "Kunaljit Kashyap", score: "980", type: "HELMET", isAuto: true },
+                { time: "12:44 PM", driver: "Owner of MH 12 AB 1234", score: "760", type: "SPEEDING", isAuto: false },
+            ]);
+
+            useEffect(() => {
+                const ws = new WebSocket("ws://localhost:8000/ws/authority");
+                ws.onmessage = (event) => {
+                    try {
+                        const newViolation = JSON.parse(event.data);
+                        setViolations(prev => [newViolation, ...prev]);
+                    } catch (e) {
+                        console.error("Error parsing WebSocket message:", e);
+                    }
+                };
+                return () => ws.close();
+            }, []);
+
+            return (
+                <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+                    
+                    {/* Header Banner */}
+                    <div className="flex items-center justify-between bg-accent-cyan/10 border border-accent-cyan/20 rounded-lg p-4 shadow-[0_0_15px_rgba(0,242,254,0.05)]">
+                        <p className="text-sm text-accent-cyan/90">
+                            <strong className="text-accent-cyan">Live Control Room</strong> — Real-time monitoring, analytics, and network health.
+                        </p>
+                        <div className="flex items-center gap-2 bg-brand-panel border border-brand-glassBorder px-3 py-1 rounded-full">
+                            <div className="w-2 h-2 rounded-full bg-accent-emerald animate-pulse shadow-[0_0_5px_rgba(0,230,118,1)]"></div>
+                            <span className="text-xs font-medium text-slate-300">Live Connection Active</span>
+                        </div>
+                    </div>
+
+                    {/* KPI Summary Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {[
+                            { label: "Fines Issued", value: "31", color: "text-white" },
+                            { label: "Revenue Generated", value: "₹2,000", color: "text-accent-emerald neon-text-emerald" },
+                            { label: "Pending Collection", value: "₹45,250", color: "text-accent-gold" },
+                            { label: "Registered Drivers", value: "14", color: "text-white" }
+                        ].map((kpi, idx) => (
+                            <div key={idx} className="glass-panel p-5 rounded-xl border border-brand-glassBorder">
+                                <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">{kpi.label}</p>
+                                <p className={`text-2xl font-mono font-bold ${kpi.color}`}>{kpi.value}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Analytics Row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[400px]">
+                        
+                        {/* Left: Chart Mockup */}
+                        <div className="glass-panel rounded-2xl p-6 col-span-1 border border-brand-glassBorder relative overflow-hidden flex flex-col">
+                            <h2 className="text-slate-400 font-medium text-xs tracking-widest uppercase mb-4">Violations by Category</h2>
+                            <div className="flex-1 relative border-l border-b border-brand-glassBorder/50">
+                                {/* Grid backdrop */}
+                                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                                
+                                {/* Mock Spline Path */}
+                                <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                    <path d="M0,80 C20,80 30,30 50,40 C70,50 80,10 100,20" fill="none" stroke="#00F2FE" strokeWidth="2" className="drop-shadow-[0_0_8px_rgba(0,242,254,0.8)]"/>
+                                    <path d="M0,80 C20,80 30,30 50,40 C70,50 80,10 100,20 L100,100 L0,100 Z" fill="url(#gradient)" opacity="0.2"/>
+                                    <defs>
+                                        <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#00F2FE" />
+                                            <stop offset="100%" stopColor="transparent" />
+                                        </linearGradient>
+                                    </defs>
+                                    {/* Data Points */}
+                                    <circle cx="30" cy="48" r="2" fill="#fff" stroke="#00F2FE" strokeWidth="1"/>
+                                    <circle cx="50" cy="40" r="2" fill="#fff" stroke="#00F2FE" strokeWidth="1"/>
+                                    <circle cx="80" cy="18" r="2" fill="#fff" stroke="#00F2FE" strokeWidth="1"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* Right: Live Data Table */}
+                        <div className="glass-panel rounded-2xl p-6 col-span-2 border border-brand-glassBorder flex flex-col">
+                            <h2 className="text-slate-400 font-medium text-xs tracking-widest uppercase mb-4">Recent AI Violations</h2>
+                            <div className="flex-1 overflow-auto pr-2">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="sticky top-0 bg-[#15171E] z-10">
+                                        <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-brand-glassBorder">
+                                            <th className="pb-3 font-medium">Time</th>
+                                            <th className="pb-3 font-medium">Driver / Entity</th>
+                                            <th className="pb-3 font-medium">Score</th>
+                                            <th className="pb-3 font-medium">Violation</th>
+                                            <th className="pb-3 font-medium text-right">E-Challan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-sm">
+                                        {violations.map((row, idx) => (
+                                            <tr key={idx} className="border-b border-brand-glassBorder/30 hover:bg-white/5 transition-colors">
+                                                <td className="py-3 font-mono text-xs text-slate-400">{row.time}</td>
+                                                <td className="py-3 text-slate-200">{row.driver}</td>
+                                                <td className="py-3 font-mono text-accent-emerald">{row.score}</td>
+                                                <td className="py-3">
+                                                    <span className={`border px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${row.type === 'HELMET' ? 'bg-accent-coral/20 text-accent-coral border-accent-coral/30' : 'bg-accent-gold/20 text-accent-gold border-accent-gold/30'}`}>
+                                                        {row.type}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 text-right flex items-center justify-end gap-3">
+                                                    {/* NEW SUB-COMPONENT EXTENSION: AI SMS Dispatch Badge */}
+                                                    {highConfidence && row.isAuto && (
+                                                        <div className="flex items-center gap-1.5 bg-accent-cyan/10 border border-accent-cyan/30 text-accent-cyan px-2 py-1 rounded text-[10px] font-medium animate-pulse">
+                                                            <SmartphoneIcon />
+                                                            SMS Dispatched
+                                                        </div>
+                                                    )}
+                                                    <button className="text-xs text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 px-3 py-1 rounded transition-colors bg-brand-panel">
+                                                        View PDF
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        // Render App
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

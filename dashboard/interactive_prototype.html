@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-[#0B0C10] text-white">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATVED UI - Dynamic Relaxation Prototype</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#0B0C10',
+                            panel: '#141823', // rgba(20, 24, 35, 0.65) equivalent
+                            glassBorder: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        tier: {
+                            critical: '#FF1744',
+                            fair: '#FF9100',
+                            good: '#FFEA00',
+                            excellent: '#00E676'
+                        },
+                        accent: {
+                            cyan: '#00F2FE'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Roboto Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0B0C10 0%, #0F1015 100%); min-height: 100vh; }
+        .glass-panel {
+            background: rgba(20, 24, 35, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body class="text-slate-200 selection:bg-accent-cyan selection:text-black">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Tier Logic ---
+        const getTierDetails = (score) => {
+            if (score >= 900) return { name: "EXCELLENT", color: "#00E676", discount: 0.10, label: "10% VIP Relaxation Active" };
+            if (score >= 750) return { name: "GOOD", color: "#FFEA00", discount: 0.05, label: "5% Standard Relaxation Active" };
+            if (score >= 500) return { name: "FAIR", color: "#FF9100", discount: 0.02, label: "2% Minimal Relaxation Active" };
+            return { name: "POOR", color: "#FF1744", discount: 0, label: "0% Relaxation - Penalty Multiplier Risk" };
+        };
+
+        // --- Main App Component ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('citizen');
+            
+            // Shared State
+            const [driver, setDriver] = useState({
+                name: "Purba Pratim Mahanta",
+                balance: 61000,
+                score: 420 // Initial poor score
+            });
+
+            const [challans, setChallans] = useState([
+                { id: "ATVED_2026_8X9K2A", date: "6/21/2026 01:26 PM", type: "HELMET", baseFine: 1000, status: "UNPAID" },
+                { id: "ATVED_2026_1A3B4C", date: "6/18/2026 04:15 PM", type: "SPEEDING", baseFine: 2000, status: "UNPAID" },
+                { id: "ATVED_2026_9Z8Y7X", date: "5/12/2026 10:00 AM", type: "STOP_LINE", baseFine: 500, status: "PAID", paidAmount: 500 }
+            ]);
+
+            const currentTier = getTierDetails(driver.score);
+
+            const handlePay = (id, amountDue) => {
+                setDriver(prev => ({
+                    ...prev,
+                    balance: prev.balance - amountDue,
+                    score: Math.min(1000, prev.score + 150) // Pay to Boost Score Workflow
+                }));
+                setChallans(prev => prev.map(c => 
+                    c.id === id ? { ...c, status: "PAID", paidAmount: amountDue } : c
+                ));
+            };
+
+            return (
+                <div className="flex flex-col min-h-screen relative overflow-hidden">
+                    {/* Background glow effects mapped to tier color */}
+                    <div 
+                        className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full mix-blend-screen filter blur-[150px] opacity-10 pointer-events-none transition-colors duration-1000"
+                        style={{ backgroundColor: currentTier.color }}
+                    ></div>
+                    <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-accent-cyan rounded-full mix-blend-screen filter blur-[150px] opacity-5 pointer-events-none"></div>
+
+                    {/* Navigation Header */}
+                    <header className="flex justify-between items-center px-8 py-5 border-b border-brand-glassBorder glass-panel sticky top-0 z-50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded bg-gradient-to-br from-accent-cyan to-blue-800 flex items-center justify-center shadow-[0_0_15px_rgba(0,242,254,0.4)]">
+                                <span className="font-bold text-black text-sm">A</span>
+                            </div>
+                            <h1 className="text-xl font-bold tracking-wider text-white">
+                                {activeTab === 'citizen' ? 'ATVED GridLock' : 'ATVED Authority'}
+                            </h1>
+                        </div>
+                        
+                        <nav className="flex items-center gap-8 text-sm font-medium text-slate-400">
+                            <button 
+                                onClick={() => setActiveTab('citizen')}
+                                className={`pb-1 border-b-2 transition-colors ${activeTab === 'citizen' ? 'border-accent-cyan text-white text-shadow-sm' : 'border-transparent hover:text-slate-200'}`}
+                                style={{ textShadow: activeTab === 'citizen' ? '0 0 10px rgba(0, 242, 254, 0.5)' : 'none' }}
+                            >
+                                Citizen Portal
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('authority')}
+                                className={`pb-1 border-b-2 transition-colors ${activeTab === 'authority' ? 'border-accent-cyan text-white text-shadow-sm' : 'border-transparent hover:text-slate-200'}`}
+                                style={{ textShadow: activeTab === 'authority' ? '0 0 10px rgba(0, 242, 254, 0.5)' : 'none' }}
+                            >
+                                Control Room
+                            </button>
+                            <button className="px-4 py-1.5 rounded bg-white/5 hover:bg-white/10 border border-brand-glassBorder text-white transition-colors">
+                                Logout
+                            </button>
+                        </nav>
+                    </header>
+
+                    {/* Main Content Area */}
+                    <main className="flex-1 p-8 max-w-7xl w-full mx-auto z-10 relative">
+                        {activeTab === 'citizen' && (
+                            <CitizenPortal 
+                                driver={driver} 
+                                tier={currentTier} 
+                                challans={challans} 
+                                onPay={handlePay} 
+                            />
+                        )}
+                        {activeTab === 'authority' && (
+                            <AuthorityPortal 
+                                driver={driver} 
+                                tier={currentTier}
+                            />
+                        )}
+                    </main>
+                </div>
+            );
+        };
+
+        // --- View 1: Citizen Portal ---
+        const CitizenPortal = ({ driver, tier, challans, onPay }) => {
+            return (
+                <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+                    
+                    {/* Row 1: Split Layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Left Card: Dynamic Traffic Score */}
+                        <div className="glass-panel rounded-2xl p-8 flex flex-col items-center justify-center relative overflow-hidden">
+                            <h2 className="text-slate-400 font-medium text-sm tracking-widest uppercase mb-6 w-full text-left">Dynamic Traffic Score</h2>
+                            
+                            {/* Animated Gauge */}
+                            <div 
+                                className="relative w-48 h-48 flex flex-col items-center justify-center rounded-full border-[6px] transition-all duration-1000 ease-in-out mb-4"
+                                style={{ 
+                                    borderColor: tier.color, 
+                                    boxShadow: `0 0 40px ${tier.color}33`,
+                                    borderTopColor: 'transparent' // Arc effect
+                                }}
+                            >
+                                <span 
+                                    className="font-mono text-6xl font-bold transition-colors duration-1000"
+                                    style={{ color: tier.color, textShadow: `0 0 20px ${tier.color}80` }}
+                                >
+                                    {driver.score}
+                                </span>
+                                <div 
+                                    className="mt-2 text-[11px] font-bold px-4 py-1 rounded-full border transition-all duration-1000 tracking-wider"
+                                    style={{ color: tier.color, borderColor: tier.color, backgroundColor: `${tier.color}15` }}
+                                >
+                                    {tier.name}
+                                </div>
+                            </div>
+                            
+                            <p className="text-slate-300 text-sm mt-4 font-medium flex items-center gap-2">
+                                Current Reward: 
+                                <span 
+                                    className="px-2 py-0.5 rounded text-xs transition-colors duration-1000"
+                                    style={{ backgroundColor: `${tier.color}20`, color: tier.color, border: `1px solid ${tier.color}50` }}
+                                >
+                                    {tier.label}
+                                </span>
+                            </p>
+                        </div>
+
+                        {/* Right Card: Account & Vehicle Details */}
+                        <div className="glass-panel rounded-2xl p-8 flex flex-col justify-between">
+                            {/* Bank Account */}
+                            <div className="mb-8">
+                                <h2 className="text-slate-400 font-medium text-xs tracking-widest uppercase mb-3">Linked Bank Account</h2>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white">HDFC Bank</h3>
+                                        <p className="font-mono text-slate-400 text-sm mt-1">XXXX-XXXX-7823</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-slate-400 mb-1">LIVE BALANCE</p>
+                                        <p className="font-mono text-2xl font-bold text-accent-cyan transition-all duration-500">
+                                            ₹{driver.balance.toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="h-px w-full bg-brand-glassBorder mb-8"></div>
+
+                            {/* Registered Vehicles */}
+                            <div>
+                                <h2 className="text-slate-400 font-medium text-xs tracking-widest uppercase mb-3">Registered Vehicles</h2>
+                                <div className="flex items-center justify-between bg-[#1A1F2E] p-4 rounded-lg border border-brand-glassBorder">
+                                    <p className="text-sm font-medium text-white">Royal Enfield Classic 350 <span className="text-slate-500 block text-[11px] mt-1 uppercase tracking-wider">Gunmetal Grey</span></p>
+                                    <div className="bg-[#E2E8F0] text-[#0F172A] font-mono font-bold text-sm px-3 py-1.5 rounded shadow-inner border border-slate-400">
+                                        AS 03 PM 7823
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Row 2: Automatic Deduction & Challan History */}
+                    <div className="glass-panel rounded-2xl p-8">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-slate-400 font-medium text-sm tracking-widest uppercase">Outstanding & Historical E-Challans</h2>
+                            <p className="text-xs text-slate-500">Payments boost score by +150 points.</p>
+                        </div>
+                        
+                        <div className="w-full overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="text-xs text-slate-500 uppercase tracking-wider border-b border-brand-glassBorder">
+                                        <th className="pb-4 font-medium">Date & Time</th>
+                                        <th className="pb-4 font-medium">Violation</th>
+                                        <th className="pb-4 font-medium text-right">Base Fine</th>
+                                        <th className="pb-4 font-medium text-center">Active Discount</th>
+                                        <th className="pb-4 font-medium text-right">Amount Due</th>
+                                        <th className="pb-4 font-medium text-center">Status</th>
+                                        <th className="pb-4 font-medium text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm">
+                                    {challans.map((c) => {
+                                        // Calculate dynamic amounts for unpaid challans
+                                        const isUnpaid = c.status === "UNPAID";
+                                        const activeDiscountPct = isUnpaid ? tier.discount : 0;
+                                        const discountAmount = isUnpaid ? c.baseFine * activeDiscountPct : 0;
+                                        const amountDue = isUnpaid ? c.baseFine - discountAmount : c.paidAmount;
+
+                                        return (
+                                            <tr key={c.id} className="border-b border-brand-glassBorder/30 hover:bg-white/5 transition-colors">
+                                                <td className="py-4 font-mono text-slate-300 text-xs">
+                                                    {c.date.split(' ')[0]} <span className="text-slate-500">{c.date.split(' ').slice(1).join(' ')}</span><br/>
+                                                    <span className="text-[10px] text-slate-600">{c.id}</span>
+                                                </td>
+                                                <td className="py-4">
+                                                    <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider">
+                                                        {c.type}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 font-mono text-slate-400 text-right">₹{c.baseFine}</td>
+                                                <td className="py-4 text-center">
+                                                    {isUnpaid ? (
+                                                        <span className="font-mono text-xs transition-colors duration-1000" style={{ color: activeDiscountPct > 0 ? tier.color : '#64748B' }}>
+                                                            {activeDiscountPct * 100}%
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-600">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="py-4 font-mono font-medium text-right transition-colors duration-1000" style={{ color: isUnpaid ? tier.color : '#94A3B8' }}>
+                                                    ₹{amountDue}
+                                                </td>
+                                                <td className="py-4 text-center font-bold tracking-wider text-xs">
+                                                    {isUnpaid ? (
+                                                        <span className="text-tier-critical">UNPAID</span>
+                                                    ) : (
+                                                        <span className="text-tier-excellent">PAID</span>
+                                                    )}
+                                                </td>
+                                                <td className="py-4 text-right">
+                                                    {isUnpaid ? (
+                                                        <button 
+                                                            onClick={() => onPay(c.id, amountDue)}
+                                                            className="bg-accent-cyan text-black hover:bg-white transition-all font-bold text-xs px-5 py-2 rounded-full shadow-[0_0_15px_rgba(0,242,254,0.4)] transform hover:scale-105 active:scale-95"
+                                                        >
+                                                            Pay Challan
+                                                        </button>
+                                                    ) : (
+                                                        <button className="bg-transparent border border-slate-600 text-slate-300 hover:text-white hover:border-slate-400 transition-colors font-medium text-xs px-4 py-1.5 rounded-full">
+                                                            Download PDF
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- View 2: Authority Control Room ---
+        const AuthorityPortal = ({ driver, tier }) => {
+            return (
+                <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+                    
+                    {/* KPI Summary Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {[
+                            { label: "Fines Issued", value: "31", color: "text-white" },
+                            { label: "Revenue Generated", value: "₹2,000", color: "text-[#00E676] drop-shadow-[0_0_8px_rgba(0,230,118,0.5)]" },
+                            { label: "Pending Collection", value: "₹45,250", color: "text-[#FFEA00]" },
+                            { label: "Registered Drivers", value: "14", color: "text-white" }
+                        ].map((kpi, idx) => (
+                            <div key={idx} className="glass-panel p-5 rounded-xl border border-brand-glassBorder">
+                                <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">{kpi.label}</p>
+                                <p className={`text-3xl font-mono font-bold ${kpi.color}`}>{kpi.value}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Analytics Row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[400px]">
+                        
+                        {/* Left: Chart Mockup */}
+                        <div className="glass-panel rounded-2xl p-6 col-span-1 border border-brand-glassBorder relative overflow-hidden flex flex-col">
+                            <h2 className="text-slate-400 font-medium text-xs tracking-widest uppercase mb-4">Violations by Category</h2>
+                            <div className="flex-1 relative border-l border-b border-brand-glassBorder/50 mt-4 ml-4 mb-4">
+                                {/* Grid backdrop */}
+                                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                                
+                                {/* Mock Spline Path */}
+                                <svg className="absolute inset-0 h-full w-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                    <path d="M0,90 C20,90 30,40 50,50 C70,60 80,20 100,30" fill="none" stroke="#00F2FE" strokeWidth="3" strokeLinecap="round" className="drop-shadow-[0_0_8px_rgba(0,242,254,0.6)]"/>
+                                    <path d="M0,90 C20,90 30,40 50,50 C70,60 80,20 100,30 L100,100 L0,100 Z" fill="url(#gradient)" opacity="0.15"/>
+                                    <defs>
+                                        <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#00F2FE" />
+                                            <stop offset="100%" stopColor="transparent" />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* Right: Live Data Table */}
+                        <div className="glass-panel rounded-2xl p-6 col-span-2 border border-brand-glassBorder flex flex-col">
+                            <h2 className="text-slate-400 font-medium text-xs tracking-widest uppercase mb-4">Recent AI Violations</h2>
+                            <div className="flex-1 overflow-auto pr-2">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="sticky top-0 bg-[#0F121A] z-10 shadow-sm">
+                                        <tr className="text-[10px] text-slate-500 uppercase tracking-widest border-b border-brand-glassBorder">
+                                            <th className="pb-3 font-semibold">Time</th>
+                                            <th className="pb-3 font-semibold">Driver / Entity</th>
+                                            <th className="pb-3 font-semibold">Live Score</th>
+                                            <th className="pb-3 font-semibold">Violation</th>
+                                            <th className="pb-3 font-semibold text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-sm">
+                                        {[
+                                            { time: "01:26 PM", driver: driver.name, score: driver.score, tier: tier, type: "HELMET" },
+                                            { time: "01:25 PM", driver: "Owner of KA 01 HG 9999", score: 760, tier: getTierDetails(760), type: "HELMET" },
+                                            { time: "01:25 PM", driver: "Kunaljit Kashyap", score: 980, tier: getTierDetails(980), type: "HELMET" },
+                                            { time: "12:44 PM", driver: "Owner of MH 12 AB 1234", score: 480, tier: getTierDetails(480), type: "SPEEDING" },
+                                        ].map((row, idx) => (
+                                            <tr key={idx} className="border-b border-brand-glassBorder/30 hover:bg-white/5 transition-colors">
+                                                <td className="py-3 font-mono text-xs text-slate-400">{row.time}</td>
+                                                <td className="py-3 text-slate-200">{row.driver}</td>
+                                                <td className="py-3 font-mono transition-colors duration-1000 font-bold" style={{ color: row.tier.color }}>
+                                                    {row.score}
+                                                </td>
+                                                <td className="py-3">
+                                                    <span className={`border px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${row.type === 'HELMET' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>
+                                                        {row.type}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 text-right">
+                                                    <button className="text-[11px] font-medium text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1 rounded transition-colors bg-black/20">
+                                                        View Data
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        // Render App
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atved-inference-worker
+  namespace: atved-prod
+  labels:
+    app: atved-inference
+spec:
+  replicas: 4 # Horizontal scaling across 4 T4 GPUs
+  selector:
+    matchLabels:
+      app: atved-inference
+  template:
+    metadata:
+      labels:
+        app: atved-inference
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      containers:
+      - name: inference-worker
+        image: atved/inference:latest
+        command: ["python", "-m", "atved.cli", "run-worker"]
+        envFrom:
+        - configMapRef:
+            name: atved-config
+        - secretRef:
+            name: atved-secrets
+        resources:
+          limits:
+            nvidia.com/gpu: 1 # Request 1 full GPU per pod
+            memory: "16Gi"
+            cpu: "4"
+          requests:
+            nvidia.com/gpu: 1
+            memory: "8Gi"
+            cpu: "2"
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atved-api
+  namespace: atved-prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: atved-api
+  template:
+    metadata:
+      labels:
+        app: atved-api
+    spec:
+      containers:
+      - name: api
+        image: atved/api:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: atved-config
+        - secretRef:
+            name: atved-secrets
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-[#0B0C10] text-white">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATVED - Control Room</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { bg: '#0B0C10', panel: '#141823', glassBorder: 'rgba(255, 255, 255, 0.1)' },
+                        tier: { critical: '#FF1744', fair: '#FF9100', good: '#FFEA00', excellent: '#00E676' },
+                        accent: { cyan: '#00F2FE' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['Roboto Mono', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0B0C10 0%, #0F1015 100%); min-height: 100vh; }
+        .glass-panel { background: rgba(20, 24, 35, 0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    </style>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body class="text-slate-200 selection:bg-accent-cyan selection:text-black">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const getTierDetails = (score) => {
+            if (score >= 900) return { name: "EXCELLENT", color: "#00E676" };
+            if (score >= 750) return { name: "GOOD", color: "#FFEA00" };
+            if (score >= 500) return { name: "FAIR", color: "#FF9100" };
+            return { name: "POOR", color: "#FF1744" };
+        };
+
+        const AuthorityApp = () => {
+            const [data, setData] = useState(() => {
+                const stored = localStorage.getItem('atved_sync_data');
+                return stored ? JSON.parse(stored) : { driver: { name: "Purba Pratim Mahanta", score: 420 }};
+            });
+
+            useEffect(() => {
+                const handleStorage = (e) => {
+                    if (e.key === 'atved_sync_data' && e.newValue) {
+                        setData(JSON.parse(e.newValue));
+                    }
+                };
+                window.addEventListener('storage', handleStorage);
+                return () => window.removeEventListener('storage', handleStorage);
+            }, []);
+
+            const tier = getTierDetails(data.driver.score);
+
+            return (
+                <div className="flex flex-col min-h-screen relative overflow-hidden">
+                    <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-accent-cyan rounded-full mix-blend-screen filter blur-[150px] opacity-5 pointer-events-none"></div>
+
+                    <header className="flex justify-between items-center px-8 py-5 border-b border-brand-glassBorder glass-panel sticky top-0 z-50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded bg-gradient-to-br from-accent-cyan to-blue-800 flex items-center justify-center shadow-[0_0_15px_rgba(0,242,254,0.4)]"><span className="font-bold text-black text-sm">A</span></div>
+                            <h1 className="text-xl font-bold tracking-wider text-white">ATVED Authority <span className="text-accent-cyan text-sm font-normal ml-2">Control Room</span></h1>
+                        </div>
+                        <nav className="flex items-center gap-8 text-sm font-medium">
+                            <a href="citizen_ui.html" className="pb-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-colors">Citizen Portal</a>
+                            <button className="pb-1 border-b-2 border-accent-cyan text-white text-shadow-sm">Control Room</button>
+                        </nav>
+                    </header>
+
+                    <main className="flex-1 p-8 max-w-7xl w-full mx-auto z-10 relative flex flex-col gap-6 animate-in fade-in duration-500">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            {[
+                                { label: "Fines Issued", value: "31", color: "text-white" },
+                                { label: "Revenue Generated", value: "₹2,000", color: "text-[#00E676] drop-shadow-[0_0_8px_rgba(0,230,118,0.5)]" },
+                                { label: "Pending Collection", value: "₹45,250", color: "text-[#FFEA00]" },
+                                { label: "Registered Drivers", value: "14", color: "text-white" }
+                            ].map((kpi, idx) => (
+                                <div key={idx} className="glass-panel p-5 rounded-xl border border-brand-glassBorder">
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-semibold">{kpi.label}</p>
+                                    <p className={`text-3xl font-mono font-bold ${kpi.color}`}>{kpi.value}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[400px]">
+                            <div className="glass-panel rounded-2xl p-6 col-span-1 border border-brand-glassBorder relative overflow-hidden flex flex-col">
+                                <h2 className="text-slate-400 font-medium text-xs tracking-widest uppercase mb-4">Violations by Category</h2>
+                                <div className="flex-1 relative border-l border-b border-brand-glassBorder/50 mt-4 ml-4 mb-4">
+                                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                                    <svg className="absolute inset-0 h-full w-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                        <path d="M0,90 C20,90 30,40 50,50 C70,60 80,20 100,30" fill="none" stroke="#00F2FE" strokeWidth="3" strokeLinecap="round" className="drop-shadow-[0_0_8px_rgba(0,242,254,0.6)]"/>
+                                        <path d="M0,90 C20,90 30,40 50,50 C70,60 80,20 100,30 L100,100 L0,100 Z" fill="url(#gradient)" opacity="0.15"/>
+                                        <defs><linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#00F2FE" /><stop offset="100%" stopColor="transparent" /></linearGradient></defs>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <div className="glass-panel rounded-2xl p-6 col-span-2 border border-brand-glassBorder flex flex-col">
+                                <h2 className="text-slate-400 font-medium text-xs tracking-widest uppercase mb-4">Recent AI Violations</h2>
+                                <div className="flex-1 overflow-auto pr-2">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead className="sticky top-0 bg-[#0F121A] z-10 shadow-sm">
+                                            <tr className="text-[10px] text-slate-500 uppercase tracking-widest border-b border-brand-glassBorder">
+                                                <th className="pb-3 font-semibold">Time</th><th className="pb-3 font-semibold">Driver / Entity</th><th className="pb-3 font-semibold">Live Score</th><th className="pb-3 font-semibold">Violation</th><th className="pb-3 font-semibold text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="text-sm">
+                                            {[
+                                                { time: "01:26 PM", driver: data.driver.name, score: data.driver.score, tier: tier, type: "HELMET" },
+                                                { time: "01:25 PM", driver: "Owner of KA 01 HG 9999", score: 760, tier: getTierDetails(760), type: "HELMET" },
+                                                { time: "01:25 PM", driver: "Kunaljit Kashyap", score: 980, tier: getTierDetails(980), type: "HELMET" },
+                                            ].map((row, idx) => (
+                                                <tr key={idx} className="border-b border-brand-glassBorder/30 hover:bg-white/5 transition-colors">
+                                                    <td className="py-3 font-mono text-xs text-slate-400">{row.time}</td>
+                                                    <td className="py-3 text-slate-200">{row.driver}</td>
+                                                    <td className="py-3 font-mono transition-colors duration-1000 font-bold" style={{ color: row.tier.color }}>{row.score}</td>
+                                                    <td className="py-3"><span className={`border px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${row.type === 'HELMET' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>{row.type}</span></td>
+                                                    <td className="py-3 text-right"><button className="text-[11px] font-medium text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-1 rounded transition-colors bg-black/20">View Data</button></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AuthorityApp />);
+    </script>
+</body>
+</html>
