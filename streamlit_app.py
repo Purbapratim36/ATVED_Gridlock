@@ -424,7 +424,7 @@ try:
         image_files = glob.glob("demo_images/*.jpg") + glob.glob("demo_images/*.png") + glob.glob("demo_images/*.jpeg")
         slideshow_html = ""
         if image_files:
-            slideshow_html += "<div class='glass-panel' style='margin-bottom: 30px;'><h3>📸 Live AI Detections</h3><div style='background: #111; padding: 10px; border: 4px solid #111; text-align: center; height: 300px; display: flex; align-items: center; justify-content: center; overflow: hidden;'>"
+            slideshow_html += "<div class='glass-panel' style='margin-bottom: 30px;'><h3>LIVE DETECTIONS</h3><div style='background: #111; padding: 10px; border: 4px solid #111; text-align: center; height: 300px; display: flex; align-items: center; justify-content: center; overflow: hidden;'>"
             for img_path in image_files:
                 try:
                     with open(img_path, "rb") as img_file:
