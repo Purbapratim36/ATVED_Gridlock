@@ -19,7 +19,7 @@ try:
     conn = sqlite3.connect('atved.db')
     
     # Fetch Drivers for Streamlit Dropdown
-    drivers_df = pd.read_sql_query("SELECT id, name, license_number, traffic_score, phone, bank_name, bank_balance FROM drivers", conn)
+    drivers_df = pd.read_sql_query("SELECT id, name, aadhaar_number, traffic_score, phone, bank_name, bank_balance FROM drivers", conn)
     driver_options = drivers_df['name'].tolist()
     
     st.markdown("<h3 style='color: #8a8d9b; margin-top: -30px;'>Select a Driver to View their Citizen Dashboard:</h3>", unsafe_allow_html=True)
@@ -50,7 +50,7 @@ try:
             
         driver_data = {
             "name": driver_row['name'],
-            "license_number": driver_row['license_number'],
+            "license_number": driver_row['aadhaar_number'],
             "phone": driver_row['phone'],
             "traffic_score": driver_row['traffic_score'],
             "bank_name": driver_row['bank_name'],
