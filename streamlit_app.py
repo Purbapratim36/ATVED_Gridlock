@@ -110,11 +110,38 @@ try:
                 "plates": ["AS 03 PM 7823"]
             }
             
+            # Traffic Animation Injection
+            traffic_anim_html = """
+            <style>
+            @keyframes scrollRoad { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+            @keyframes driveCar1 { 0% { left: -100px; } 100% { left: 100%; } }
+            @keyframes driveCar2 { 0% { left: -200px; } 100% { left: 100%; } }
+            svg.brutal-car { display: block !important; position: absolute; top: 10px; }
+            .traffic-animation { border-bottom: 4px solid #111; border-top: 4px solid #111; background: #fff; overflow: hidden; position: relative; height: 60px; margin-bottom: 30px; box-shadow: 0px 8px 0px #111; }
+            .traffic-animation::before { content: ""; position: absolute; top: 50%; width: 200%; border-top: 4px dashed #111; animation: scrollRoad 2s linear infinite; }
+            </style>
+            <div class="traffic-animation">
+                <svg class="brutal-car" style="animation: driveCar1 5s linear infinite;" width="60" height="30" viewBox="0 0 60 30">
+                    <rect x="0" y="10" width="50" height="20" fill="#ffea00" stroke="#111" stroke-width="4"/>
+                    <rect x="10" y="0" width="30" height="10" fill="#fff" stroke="#111" stroke-width="4"/>
+                    <circle cx="15" cy="30" r="6" fill="#111"/>
+                    <circle cx="35" cy="30" r="6" fill="#111"/>
+                </svg>
+                <svg class="brutal-car" style="animation: driveCar2 7s linear infinite; animation-delay: 2.5s;" width="60" height="30" viewBox="0 0 60 30">
+                    <rect x="0" y="10" width="50" height="20" fill="#ff1744" stroke="#111" stroke-width="4"/>
+                    <rect x="10" y="0" width="30" height="10" fill="#fff" stroke="#111" stroke-width="4"/>
+                    <circle cx="15" cy="30" r="6" fill="#111"/>
+                    <circle cx="35" cy="30" r="6" fill="#111"/>
+                </svg>
+            </div>
+            """
+            
             with open('dashboard/index.html', 'r', encoding='utf-8') as f:
                 html_content = f.read()
                 
             html_content = html_content.replace('<link rel="stylesheet" href="css/style.css">', f'<style>{css_content}</style>')
             html_content = html_content.replace('<script src="js/app.js"></script>', '')
+            html_content = html_content.replace('</nav>', '</nav>' + traffic_anim_html)
             
             # Interactive Citizen JS
             mock_js = f"""
@@ -256,11 +283,37 @@ try:
                 "violation_record_id": row['violation_record_id']
             })
             
+        traffic_anim_html = """
+        <style>
+        @keyframes scrollRoad { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes driveCar1 { 0% { left: -100px; } 100% { left: 100%; } }
+        @keyframes driveCar2 { 0% { left: -200px; } 100% { left: 100%; } }
+        svg.brutal-car { display: block !important; position: absolute; top: 10px; }
+        .traffic-animation { border-bottom: 4px solid #111; border-top: 4px solid #111; background: #fff; overflow: hidden; position: relative; height: 60px; margin-bottom: 30px; box-shadow: 0px 8px 0px #111; }
+        .traffic-animation::before { content: ""; position: absolute; top: 50%; width: 200%; border-top: 4px dashed #111; animation: scrollRoad 2s linear infinite; }
+        </style>
+        <div class="traffic-animation">
+            <svg class="brutal-car" style="animation: driveCar1 4s linear infinite;" width="60" height="30" viewBox="0 0 60 30">
+                <rect x="0" y="10" width="50" height="20" fill="#00e676" stroke="#111" stroke-width="4"/>
+                <rect x="10" y="0" width="30" height="10" fill="#fff" stroke="#111" stroke-width="4"/>
+                <circle cx="15" cy="30" r="6" fill="#111"/>
+                <circle cx="35" cy="30" r="6" fill="#111"/>
+            </svg>
+            <svg class="brutal-car" style="animation: driveCar2 6s linear infinite; animation-delay: 1.5s;" width="60" height="30" viewBox="0 0 60 30">
+                <rect x="0" y="10" width="50" height="20" fill="#ffb300" stroke="#111" stroke-width="4"/>
+                <rect x="10" y="0" width="30" height="10" fill="#fff" stroke="#111" stroke-width="4"/>
+                <circle cx="15" cy="30" r="6" fill="#111"/>
+                <circle cx="35" cy="30" r="6" fill="#111"/>
+            </svg>
+        </div>
+        """
+
         with open('dashboard/authority.html', 'r', encoding='utf-8') as f:
             html_content = f.read()
             
         html_content = html_content.replace('<link rel="stylesheet" href="css/style.css">', f'<style>{css_content}</style>')
         html_content = html_content.replace('<script src="js/authority.js"></script>', '')
+        html_content = html_content.replace('</nav>', '</nav>' + traffic_anim_html)
         
         # Authority JS Injection
         auth_js = f"""
