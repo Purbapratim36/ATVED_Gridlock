@@ -53,18 +53,7 @@ SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=
 
 import asyncio
 
-# Queue for DB Writes
-ingest_queue = asyncio.Queue()
-
-async def ingest_worker():
-    while True:
-        req = await ingest_queue.get()
-        try:
-            await process_ingest(req)
-        except Exception as e:
-            print(f"[DB Write Worker] Error processing ingest: {e}")
-        finally:
-            ingest_queue.task_done()
+# Queue for DB Writes removed in favor of violations router
 
 # ---------------------------------------------------------------------------
 # Lifespan
@@ -77,9 +66,9 @@ async def lifespan(app: FastAPI):
         from sqlalchemy import text
         await conn.execute(text("UPDATE drivers SET bank_balance = 75000.0, traffic_score = 1000"))
     
-    worker_task = asyncio.create_task(ingest_worker())
+    # worker_task = asyncio.create_task(ingest_worker())
     yield
-    worker_task.cancel()
+    # worker_task.cancel()
     await engine.dispose()
 
 
@@ -94,6 +83,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from atved.api.routers import violations
+app.include_router(violations.router)
 
 # ---------------------------------------------------------------------------
 # WebSocket Connection Manager
@@ -267,246 +259,8 @@ async def verify_otp(req: OTPVerifyRequest):
 
 
 # ===========================================================================
-# INGESTION — Violation from AI Pipeline
+# INGESTION — Violation from AI Pipeline (Moved to routers/violations.py)
 # ===========================================================================
-
-@app.post("/api/v1/ingest")
-async def ingest_violation(req: ViolationIngest):
-    """
-    Ingest a violation from the AI detection pipeline.
-    Put into the queue so the vision pipeline doesn't block on DB writes.
-    """
-    await ingest_queue.put(req)
-    return {"status": "queued"}
-
-async def process_ingest(req: ViolationIngest):
-    """
-    Background worker function that handles DB writes.
-    """
-    async with SessionLocal() as db:
-        # Resolve camera
-        cam = (await db.execute(
-            select(Camera).where(Camera.external_id == req.camera_external_id)
-        )).scalar_one_or_none()
-
-        if cam is None:
-            cam = Camera(
-                external_id=req.camera_external_id,
-                location_name="Auto-registered Camera",
-                stream_url="auto",
-            )
-            db.add(cam)
-            await db.commit()
-            await db.refresh(cam)
-
-        v_type_str = req.violation_type.upper()
-        if v_type_str == "NO_HELMET":
-            v_type_str = "HELMET"
-        
-        try:
-            vtype = ViolationType(v_type_str)
-        except ValueError:
-            vtype = ViolationType.SPEEDING # Default fallback if weird string comes in
-            
-        detected = req.detected_at or datetime.now(timezone.utc)
-
-        # Store plate (simple demo encoding)
-        enc_plate = req.plate_text.encode("utf-8") if req.plate_text else None
-
-        record = ViolationRecord(
-            camera_id=cam.id,
-            violation_type=vtype,
-            status=ViolationStatus.PENDING_REVIEW,
-            confidence_score=req.confidence_score,
-            calibrated_confidence=req.confidence_score,
-            vehicle_type=req.vehicle_type,
-            plate_text_encrypted=enc_plate,
-            plate_confidence=req.plate_confidence,
-            detected_at=detected,
-        )
-        db.add(record)
-        await db.flush()
-
-        # ── Tiered Evidence Protocol ──
-        evidence_tier = 3 # Tier 3: Visual Only (No plate)
-        is_valid_plate = False
-        
-        if req.plate_text:
-            try:
-                import sys
-                import os
-                sys.path.append(os.path.join(os.path.dirname(__file__), 'computer_vision_models'))
-                from ocr_preprocessing import is_valid_indian_plate
-                is_valid_plate = is_valid_indian_plate(req.plate_text)
-            except Exception:
-                is_valid_plate = False
-
-            if is_valid_plate and (req.plate_confidence is not None and req.plate_confidence >= 0.70):
-                evidence_tier = 1 # Tier 1: Full
-            else:
-                evidence_tier = 2 # Tier 2: Partial (Unconfirmed)
-
-        # ── Full Fine Processing Flow ──
-        fine_result = None
-        driver_hit = None
-        new_driver_created = False
-
-        if evidence_tier in [1, 2] and req.plate_text:
-            # Look up driver (ignoring spaces in the database plate)
-            driver_q = select(Driver).join(RegisteredPlate).where(
-                func.replace(RegisteredPlate.plate_text, ' ', '') == req.plate_text.replace(' ', '')
-            )
-            driver_hit = (await db.execute(driver_q)).scalar_one_or_none()
-
-            if not driver_hit:
-                import random
-                # Pick a random demo user but use the REAL detected plate
-                demo_users = [
-                    {"name": "Kunaljit Kashyap", "phone": "9678620969", "email": "kunaljit@gridlock.demo"},
-                    {"name": "Purba Pratim Mahanta", "phone": "6000605406", "email": "purba@gridlock.demo"},
-                    {"name": "Mayur", "phone": "7002870742", "email": "mayur@gridlock.demo"},
-                ]
-                chosen = random.choice(demo_users)
-                print(f"[RTO] Plate '{req.plate_text}' not in DB. Assigning to: {chosen['name']} ({chosen['phone']})")
-
-                # Try to find this demo user in the DB
-                driver_hit = (await db.execute(
-                    select(Driver).where(Driver.name == chosen["name"])
-                )).scalar_one_or_none()
-
-                if not driver_hit:
-                    # Demo user doesn't exist yet — create them with phone
-                    driver_hit = Driver(
-                        name=chosen["name"],
-                        email=chosen["email"],
-                        phone=chosen["phone"],
-                        is_registered=True,
-                        traffic_score=1000,
-                        bank_balance=50000,
-                    )
-                    db.add(driver_hit)
-                    await db.flush()
-
-                # Register the REAL detected plate to this driver
-                new_plate = RegisteredPlate(driver_id=driver_hit.id, plate_text=req.plate_text)
-                db.add(new_plate)
-                new_driver_created = True
-
-            # Calculate score-based fine
-            fine_result = None
-            fine_info = calculate_fine(vtype, driver_hit.traffic_score)
-
-            # Deduct score
-            penalty = PENALTY_MATRIX.get(vtype, 0)
-            old_score = driver_hit.traffic_score
-            driver_hit.traffic_score = max(0, driver_hit.traffic_score + penalty)
-
-            # --- Rule 1: Good Samaritan Mitigation Loop ---
-            if driver_hit.eligible_for_mitigation:
-                fine_info["final_amount"] = fine_info["final_amount"] * 0.90
-                driver_hit.eligible_for_mitigation = False
-            
-            # Simulate bank deduction - Disabled to enforce manual payment workflow
-            bank_deducted = False
-            # if driver_hit.bank_balance and driver_hit.bank_balance >= fine_info["final_amount"]:
-            #     driver_hit.bank_balance -= fine_info["final_amount"]
-            #     bank_deducted = True
-
-            # Create fine transaction
-            receipt = generate_receipt_number()
-            txn = FineTransaction(
-                driver_id=driver_hit.id,
-                violation_record_id=record.id,
-                base_fine=fine_info["base_fine"],
-                multiplier=fine_info["multiplier"],
-                final_amount=fine_info["final_amount"],
-                score_at_time=old_score,
-                score_category=fine_info["score_category"],
-                bank_deducted=bank_deducted,
-                sms_sent=driver_hit.phone is not None,
-                receipt_number=receipt,
-            )
-            db.add(txn)
-
-            fine_result = {
-                "base_fine": fine_info["base_fine"],
-                "multiplier": fine_info["multiplier"],
-                "final_amount": fine_info["final_amount"],
-                "score_category": fine_info["score_category"],
-                "receipt_number": receipt,
-                "bank_deducted": bank_deducted,
-                "old_score": old_score,
-                "new_score": driver_hit.traffic_score,
-            }
-
-        await db.commit()
-        await db.refresh(record)
-
-        # Generate E-Challan PDF FIRST (so we can embed the link in the SMS)
-        pdf_url = None
-        try:
-            from fpdf import FPDF
-            pdf_path = generate_echallan_pdf(record, driver_hit, req, fine_result)
-            pdf_url = f"http://localhost:8000/pdf/{record.id}.pdf"
-            print(f"[PDF] E-Challan generated: {pdf_path}")
-        except Exception as e:
-            print(f"[PDF Error] {e}")
-
-        # --- Rule 2: High-Confidence Automated Dispatch ---
-        # Send SMS notification with embedded E-Challan link
-        if driver_hit and driver_hit.phone and req.confidence_score >= 0.85:
-            challan_link = pdf_url or "https://atved.gov.in/challan"
-            sms_body = (
-                f"-----------------------------------\n"
-                f"  [SMS NOTIFICATION SENT]\n"
-                f"-----------------------------------\n"
-                f"  To: {driver_hit.phone} ({driver_hit.name})\n"
-                f"-----------------------------------\n"
-                f"  ATVED Traffic Violation Alert\n"
-                f"  \n"
-                f"  Dear {driver_hit.name},\n"
-                f"  \n"
-                f"  A {vtype.value.replace('_',' ').title()} violation has been\n"
-                f"  detected on your vehicle ({req.plate_text}).\n"
-                f"  \n"
-                f"  Fine Amount : Rs. {fine_info['final_amount']:.0f}\n"
-                f"  Receipt No  : {receipt}\n"
-                f"  Your Score  : {driver_hit.traffic_score}/1000\n"
-                f"  Bank Deducted: {'[YES]' if bank_deducted else '[NO]'}\n"
-                f"  \n"
-                f"  [LINK] View E-Challan: {challan_link}\n"
-                f"  \n"
-                f"  Pay within 30 days to avoid penalty.\n"
-                f"  - ATVED GridLock Authority\n"
-                f"-----------------------------------\n"
-            )
-            try:
-                print(f"\n{sms_body}")
-            except Exception:
-                pass
-        elif driver_hit and req.confidence_score < 0.85:
-            print(f"[DISPATCH SILENT] Confidence {req.confidence_score:.2f} < 0.85. Suppressed SMS dispatch.")
-
-        # -----------------------------------------------------------------------
-        # Broadcast the new violation via WebSocket
-        # -----------------------------------------------------------------------
-        is_auto = bool(driver_hit and req.confidence_score >= 0.85)
-        ws_payload = {
-            "time": record.detected_at.strftime("%I:%M %p") if record.detected_at else "Just now",
-            "driver": driver_hit.name if driver_hit else f"Owner of {req.plate_text}",
-            "score": str(driver_hit.traffic_score) if driver_hit else "N/A",
-            "type": vtype.value.upper(),
-            "isAuto": is_auto,
-        }
-        await manager.broadcast(json.dumps(ws_payload))
-
-        return {
-            "id": str(record.id),
-            "status": "ingested",
-            "driver_found": driver_hit is not None,
-            "new_driver_created": new_driver_created,
-            "fine": fine_result,
-        }
 
 # ===========================================================================
 # WEBSOCKET ENDPOINTS
@@ -823,19 +577,21 @@ async def get_stats():
                 breakdown[vtype.value] = count
 
         # Fine revenue stats
-        total_revenue = (await db.execute(
+        total_revenue_raw = (await db.execute(
             select(func.sum(FineTransaction.final_amount))
             .where(FineTransaction.bank_deducted == True)
         )).scalar() or 0
+        total_revenue = total_revenue_raw / 100.0  # Convert paise to rupees
 
         total_fines_issued = (await db.execute(
             select(func.count(FineTransaction.id))
         )).scalar() or 0
 
-        pending_collection = (await db.execute(
+        pending_collection_raw = (await db.execute(
             select(func.sum(FineTransaction.final_amount))
             .where(FineTransaction.bank_deducted == False)
         )).scalar() or 0
+        pending_collection = pending_collection_raw / 100.0
 
         return {
             "total_violations": total,
@@ -1178,7 +934,7 @@ async def serve_user_dashboard():
 
 @app.get("/authority")
 async def serve_authority_dashboard():
-    return FileResponse(os.path.join(dashboard_dir, "authority.html"))
+    return FileResponse(os.path.join(dashboard_dir, "authority_ui.html"))
 
 app.mount("/css", StaticFiles(directory=os.path.join(dashboard_dir, "css")), name="dashboard-css")
 app.mount("/js", StaticFiles(directory=os.path.join(dashboard_dir, "js")), name="dashboard-js")

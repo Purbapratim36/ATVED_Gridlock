@@ -1,0 +1,11 @@
+
+
+.\redis\redis-server.exe
+
+python api_server.py
+
+python -m celery -A src.atved.tasks.challan_tasks worker --loglevel=info --pool=solo
+
+python -m streamlit run streamlit_app.py
+
+python computer_vision_models/demo_live_end_to_end.py test1.mp4

@@ -16,8 +16,8 @@ def apply_positional_correction(text):
     corrected = list(cleaned)
 
     # Dictionary mappings for common OCR confusions
-    letter_map = {'0': 'O', '1': 'I', '5': 'S', '8': 'B', '2': 'Z', '6': 'G', '7': 'T'}
-    digit_map = {'O': '0', 'I': '1', 'S': '5', 'B': '8', 'Z': '2', 'G': '6', 'T': '7', 'L': '1', 'Q': '0'}
+    letter_map = {'0': 'O', '1': 'I', '5': 'S', '8': 'B', '2': 'Z', '6': 'G', '7': 'T', '3': 'J'}
+    digit_map = {'O': '0', 'I': '1', 'S': '5', 'B': '8', 'Z': '2', 'G': '6', 'T': '7', 'L': '1', 'Q': '0', 'J': '3', 'D': '0', 'A': '4'}
 
     # 1. State Code (Positions 0-1) MUST be letters
     for i in range(min(2, len(corrected))):

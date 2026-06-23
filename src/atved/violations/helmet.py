@@ -44,6 +44,7 @@ class HelmetViolationDetector(BaseViolationDetector):
     HELMET_CLASS = "helmet"
     NO_HELMET_CLASS = "no helmet" # Handle specialized model classes
     HEAD_REGION_RATIO = 0.35  # upper 35% of rider bbox is the head region
+    CONFIRMATION_THRESHOLD = 8
 
     def __init__(self, config, violation_type=ViolationType.HELMET):
         super().__init__(config, violation_type)
@@ -68,6 +69,10 @@ class HelmetViolationDetector(BaseViolationDetector):
         # Track IDs observed this frame — used to decay stale streaks
         seen_track_ids: set[int] = set()
 
+        # Track available helmets to prevent one helmet from "protecting" multiple riders
+        available_helmets = helmets.copy()
+        available_no_helmets = no_helmets.copy()
+
         for moto in motorcycles:
             associated_riders = self._find_associated_riders(moto, riders)
 
@@ -77,12 +82,14 @@ class HelmetViolationDetector(BaseViolationDetector):
 
                 seen_track_ids.add(rider.track_id)
                 head_region = self._extract_head_region(rider)
-                has_helmet = self._check_helmet_in_region(head_region, helmets)
-                has_no_helmet_box = self._check_helmet_in_region(head_region, no_helmets)
+                
+                has_helmet = self._check_and_consume_helmet(head_region, available_helmets)
+                has_no_helmet_box = self._check_and_consume_helmet(head_region, available_no_helmets)
 
                 if has_helmet:
-                    # Reset streak — rider is wearing helmet
-                    self._no_helmet_streak.pop(rider.track_id, None)
+                    # Decay streak — rider is wearing helmet
+                    current_streak = self._no_helmet_streak.get(rider.track_id, 0)
+                    self._no_helmet_streak[rider.track_id] = max(0, current_streak - 2)
                     continue
                     
                 if has_no_helmet_box:
@@ -93,8 +100,10 @@ class HelmetViolationDetector(BaseViolationDetector):
                 streak = self._no_helmet_streak.get(rider.track_id, 0) + 1
                 self._no_helmet_streak[rider.track_id] = streak
 
-                min_frames = self._config.min_consecutive_frames
-                if streak >= min_frames:
+                # Use the dynamic threshold from config (defaulting to 8 if not set)
+                threshold = getattr(self._config, 'min_consecutive_frames', 8)
+
+                if streak >= threshold:
                     confidence = self._compute_confidence(rider, moto, streak)
                     if confidence >= self._config.min_confidence:
                         candidates.append(
@@ -116,11 +125,13 @@ class HelmetViolationDetector(BaseViolationDetector):
                                 timestamp=frame_detections.timestamp,
                             )
                         )
+                        # Reset after emission
+                        self._no_helmet_streak[rider.track_id] = 0
 
         # Decay streaks for riders no longer visible
         stale = [tid for tid in self._no_helmet_streak if tid not in seen_track_ids]
         for tid in stale:
-            self._no_helmet_streak[tid] = max(0, self._no_helmet_streak[tid] - 1)
+            self._no_helmet_streak[tid] = max(0, self._no_helmet_streak[tid] - 2)
             if self._no_helmet_streak[tid] == 0:
                 del self._no_helmet_streak[tid]
 
@@ -151,16 +162,28 @@ class HelmetViolationDetector(BaseViolationDetector):
         head_height = (y2 - y1) * self.HEAD_REGION_RATIO
         return (x1, y1, x2, y1 + head_height)
 
-    def _check_helmet_in_region(
+    def _check_and_consume_helmet(
         self,
         head_region: tuple[float, float, float, float],
-        helmets: list[DetectionResult],
+        available_helmets: list[DetectionResult],
     ) -> bool:
-        """Check if any helmet detection overlaps the head region."""
-        for helmet in helmets:
+        """
+        Check if any helmet overlaps the head region. 
+        If found, it 'consumes' the best matching helmet from the list 
+        so it cannot be used by another rider (fixing double-counting for pillions).
+        """
+        best_iou = 0
+        best_idx = -1
+        
+        for i, helmet in enumerate(available_helmets):
             iou = compute_iou(head_region, helmet.bbox)
-            if iou >= 0.2:  # Loose threshold — helmet just needs to be in head area
-                return True
+            if iou >= 0.2 and iou > best_iou:
+                best_iou = iou
+                best_idx = i
+                
+        if best_idx != -1:
+            available_helmets.pop(best_idx)
+            return True
         return False
 
     def _compute_confidence(

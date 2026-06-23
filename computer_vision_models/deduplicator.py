@@ -14,7 +14,11 @@ class ViolationDeduplicator:
         # Clean up old entries to prevent memory leak
         self.history = {k: v for k, v in self.history.items() if now - v < self.cooldown_seconds}
 
-        key = (track_id, violation_type, plate_text)
+        # Use plate_text as primary identifier if available, otherwise fallback to track_id
+        if plate_text and plate_text != "NOT DETECTED" and plate_text != "UNREADABLE":
+            key = f"plate:{plate_text}_{violation_type}"
+        else:
+            key = f"track:{track_id}_{violation_type}"
         
         if key in self.history:
             return True

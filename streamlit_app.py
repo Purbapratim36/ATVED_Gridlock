@@ -7,23 +7,47 @@ import glob
 import os
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="ATVED GridLock Portals", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="ATVED GridLock Portals", layout="wide", initial_sidebar_state="collapsed")
 
-st.sidebar.markdown("## ATVED GridLock Demo")
-st.sidebar.markdown("This Streamlit app provides a static cloud snapshot of the local system for presentation purposes.")
-portal = st.sidebar.radio("Select Portal:", ["Citizen Dashboard", "Authority Control Room"])
+import hashlib
+import uuid
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 📷 Edge Node Configuration")
-st.sidebar.caption("Control the local YOLOv8 processing node.")
-stream_type = st.sidebar.radio("Select Video Source:", ["Pre-recorded Video (test2.mp4)", "Live IP Camera Stream"])
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "Citizen Dashboard"
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'driver_id' not in st.session_state:
+    st.session_state.driver_id = None
 
-if stream_type == "Live IP Camera Stream":
-    ip_url = st.sidebar.text_input("Enter IP Camera URL:", "http://192.168.1.100:8080/video")
+def navigate(page):
+    st.session_state.current_page = page
 
-if st.sidebar.button("🚀 Start AI Video Processing"):
-    source = "IP Camera" if stream_type == "Live IP Camera Stream" else "test2.mp4"
-    st.sidebar.success(f"Signal sent to Edge Node. YOLOv8 Pipeline initializing on {source}. Please check the local machine display for the live video tracking output.")
+# Top Navigation Bar
+st.markdown("<style>.nav-btn { font-size: 16px !important; margin: 0 5px; }</style>", unsafe_allow_html=True)
+nav_cols = st.columns([1,1,1,1])
+with nav_cols[0]:
+    st.button("Citizen Portal", on_click=navigate, args=("Citizen Dashboard",), use_container_width=True)
+with nav_cols[1]:
+    st.button("Authority Control", on_click=navigate, args=("Authority Control Room",), use_container_width=True)
+with nav_cols[2]:
+    st.button("E-Challan Directory", on_click=navigate, args=("E-Challan Directory",), use_container_width=True)
+with nav_cols[3]:
+    if st.session_state.logged_in:
+        if st.button("Logout", use_container_width=True):
+            st.session_state.logged_in = False
+            st.session_state.driver_id = None
+            st.rerun()
+    else:
+        st.button("Login / Register", on_click=navigate, args=("Login/Register",), use_container_width=True)
+
+st.markdown("---")
+portal = st.session_state.current_page
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+
 
 # Custom CSS for Streamlit hiding and brutalist sidebar
 st.markdown("""
@@ -36,6 +60,18 @@ footer {visibility: hidden;}
 .stSidebar { background-color: #fff; border-right: 4px solid #111; }
 h1, h2, h3, p, label, span { color: #111 !important; font-family: 'Space Mono', monospace !important; }
 .stButton>button { background: #ffea00; color: #111; border: 4px solid #111; border-radius: 0; box-shadow: 4px 4px 0 #111; text-transform: uppercase; font-weight: bold; }
+
+    .glass-panel, .glow-card { transition: all 0.3s ease-in-out !important; }
+    .glass-panel:hover, .glow-card:hover { 
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.4) !important; 
+        border-color: #00f0ff !important;
+        transform: translateY(-2px);
+    }
+    button:hover, a:hover {
+        box-shadow: 0 0 15px rgba(255, 234, 0, 0.5) !important;
+    }
+    /* Compensate for removed icon nodes */
+    h1, h2, h3 { padding-left: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -65,19 +101,80 @@ try:
     .gauge-container svg { display: none !important; } /* explicitly hide SVG gauge */
     .metric-value { font-size: 40px !important; -webkit-text-fill-color: #111 !important; background: none !important; font-weight: bold; }
     #scoreCategory { margin-top: 10px; display: inline-block; }
+    .glass-panel, .glow-card { transition: all 0.3s ease-in-out !important; }
+    .glass-panel:hover, .glow-card:hover { 
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.4) !important; 
+        border-color: #00f0ff !important;
+        transform: translateY(-2px);
+    }
+    button:hover, a:hover {
+        box-shadow: 0 0 15px rgba(255, 234, 0, 0.5) !important;
+    }
+    /* Compensate for removed icon nodes */
+    h1, h2, h3 { padding-left: 5px; }
+
     """
     css_content = brutalist_css
 
-    if portal == "Citizen Dashboard":
-        drivers_df = pd.read_sql_query("SELECT id, name, aadhaar_number, traffic_score, phone, bank_name, bank_balance, vehicle_make, vehicle_model, vehicle_color, bank_account_masked FROM drivers", conn)
-        driver_options = drivers_df['name'].tolist()
+    if portal == "Login/Register":
+        st.markdown("## Secure Authentication")
+        tab1, tab2 = st.tabs(["Login", "Register"])
         
-        st.markdown("<h3 style='color: #8a8d9b; margin-top: -30px;'>Select a Driver to View their Citizen Dashboard:</h3>", unsafe_allow_html=True)
-        selected_name = st.selectbox("", driver_options, label_visibility="collapsed")
-        
-        if selected_name:
-            driver_row = drivers_df[drivers_df['name'] == selected_name].iloc[0]
-            driver_id = driver_row['id']
+        with tab1:
+            st.markdown("### Citizen Login")
+            with st.form("login_form"):
+                login_email = st.text_input("Email / Phone")
+                login_pass = st.text_input("Password", type="password")
+                submitted = st.form_submit_button("Login", use_container_width=True)
+                if submitted:
+                    cursor = conn.cursor()
+                    hashed = hash_password(login_pass)
+                    cursor.execute("SELECT id FROM drivers WHERE (email=? OR phone=?) AND password_hash=?", (login_email, login_email, hashed))
+                    res = cursor.fetchone()
+                    if res:
+                        st.session_state.logged_in = True
+                        st.session_state.driver_id = res[0]
+                        st.session_state.current_page = "Citizen Dashboard"
+                        st.rerun()
+                    else:
+                        st.error("Invalid credentials!")
+                    
+        with tab2:
+            st.markdown("### Register New Citizen")
+            with st.form("register_form"):
+                reg_name = st.text_input("Full Name")
+                reg_aadhaar = st.text_input("Aadhaar Number (e.g. 1234 5678 9012)")
+                reg_phone = st.text_input("Phone Number")
+                reg_email = st.text_input("Email Address")
+                reg_pass = st.text_input("Create Password", type="password")
+                submitted = st.form_submit_button("Register", use_container_width=True)
+                if submitted:
+                    if reg_name and reg_email and reg_pass:
+                        cursor = conn.cursor()
+                        hashed = hash_password(reg_pass)
+                        new_id = str(uuid.uuid4())
+                        try:
+                            cursor.execute("INSERT INTO drivers (id, name, aadhaar_number, phone, email, password_hash, traffic_score, bank_balance, is_registered) VALUES (?, ?, ?, ?, ?, ?, 1000, 50000.0, 1)", 
+                                          (new_id, reg_name, reg_aadhaar, reg_phone, reg_email, hashed))
+                            conn.commit()
+                            st.success("Registration successful! Please login.")
+                        except Exception as e:
+                            st.error(f"Registration failed (Email or Aadhaar may already exist): {e}")
+                    else:
+                        st.error("Please fill all required fields.")
+
+    elif portal == "Citizen Dashboard":
+        if not st.session_state.logged_in:
+            st.warning("Please login to view your secure Citizen Dashboard.")
+            if st.button("Go to Login"):
+                st.session_state.current_page = "Login/Register"
+                st.rerun()
+        else:
+            driver_id = st.session_state.driver_id
+            drivers_df = pd.read_sql_query(f"SELECT id, name, aadhaar_number, traffic_score, phone, bank_name, bank_balance, vehicle_make, vehicle_model, vehicle_color, bank_account_masked FROM drivers WHERE id='{driver_id}'", conn)
+            
+            if not drivers_df.empty:
+                driver_row = drivers_df.iloc[0]
             
             fines_df = pd.read_sql_query(f"SELECT t.*, v.violation_type FROM fine_transactions t LEFT JOIN violation_records v ON t.violation_record_id = v.id WHERE t.driver_id = '{driver_id}' ORDER BY t.created_at DESC", conn)
             
@@ -113,28 +210,32 @@ try:
                 "plates": ["AS 03 PM 7823"]
             }
             
-            # Traffic Animation Injection
+            # Traffic Animation Injection with Creative SVGs
             traffic_anim_html = """
             <style>
             @keyframes scrollRoad { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-            @keyframes driveCar1 { 0% { left: -100px; } 100% { left: 100%; } }
-            @keyframes driveCar2 { 0% { left: -200px; } 100% { left: 100%; } }
-            svg.brutal-car { display: block !important; position: absolute; top: 10px; }
-            .traffic-animation { border-bottom: 4px solid #111; border-top: 4px solid #111; background: #fff; overflow: hidden; position: relative; height: 60px; margin-bottom: 30px; box-shadow: 0px 8px 0px #111; }
-            .traffic-animation::before { content: ""; position: absolute; top: 50%; width: 200%; border-top: 4px dashed #111; animation: scrollRoad 2s linear infinite; }
+            @keyframes driveCar { 0% { left: -150px; } 100% { left: 100%; } }
+            @keyframes driveBike { 0% { left: -100px; } 100% { left: 100%; } }
+            svg.brutal-car { display: block !important; position: absolute; }
+            .traffic-animation { border-bottom: 6px solid #222; border-top: 6px solid #222; background: #607d8b; overflow: hidden; position: relative; height: 80px; margin-bottom: 30px; box-shadow: 0px 8px 0px #111; }
+            .traffic-animation::before { content: ""; position: absolute; top: 50%; width: 200%; border-top: 4px dashed #fff; animation: scrollRoad 1.5s linear infinite; }
             </style>
             <div class="traffic-animation">
-                <svg class="brutal-car" style="animation: driveCar1 5s linear infinite;" width="60" height="30" viewBox="0 0 60 30">
-                    <rect x="0" y="10" width="50" height="20" fill="#ffea00" stroke="#111" stroke-width="4"/>
-                    <rect x="10" y="0" width="30" height="10" fill="#fff" stroke="#111" stroke-width="4"/>
-                    <circle cx="15" cy="30" r="6" fill="#111"/>
-                    <circle cx="35" cy="30" r="6" fill="#111"/>
+                <!-- Sleek Car -->
+                <svg class="brutal-car" style="animation: driveCar 5s linear infinite; top: 35px; z-index: 3;" width="80" height="40" viewBox="0 0 80 40">
+                    <path d="M10,25 L15,10 L35,10 L50,15 L70,18 L75,30 L5,30 Z" fill="#ff1744" stroke="#111" stroke-width="2"/>
+                    <path d="M20,12 L32,12 L45,17 L20,17 Z" fill="#81d4fa" stroke="#111" stroke-width="1.5"/>
+                    <circle cx="20" cy="30" r="7" fill="#333" stroke="#eee" stroke-width="2"/>
+                    <circle cx="60" cy="30" r="7" fill="#333" stroke="#eee" stroke-width="2"/>
+                    <circle cx="72" cy="22" r="2" fill="#fff"/> <!-- Headlight -->
                 </svg>
-                <svg class="brutal-car" style="animation: driveCar2 7s linear infinite; animation-delay: 2.5s;" width="60" height="30" viewBox="0 0 60 30">
-                    <rect x="0" y="10" width="50" height="20" fill="#ff1744" stroke="#111" stroke-width="4"/>
-                    <rect x="10" y="0" width="30" height="10" fill="#fff" stroke="#111" stroke-width="4"/>
-                    <circle cx="15" cy="30" r="6" fill="#111"/>
-                    <circle cx="35" cy="30" r="6" fill="#111"/>
+                <!-- Sport Bike -->
+                <svg class="brutal-car" style="animation: driveBike 3.5s linear infinite; animation-delay: 1.5s; top: 15px; z-index: 4;" width="55" height="35" viewBox="0 0 55 35">
+                    <circle cx="15" cy="25" r="8" fill="#222" stroke="#aaa" stroke-width="2"/>
+                    <circle cx="40" cy="25" r="8" fill="#222" stroke="#aaa" stroke-width="2"/>
+                    <path d="M15,25 L25,10 L35,10 L40,25" fill="none" stroke="#00e5ff" stroke-width="4" stroke-linejoin="round"/>
+                    <path d="M25,10 L30,5 L35,10" fill="none" stroke="#111" stroke-width="3" stroke-linejoin="round"/>
+                    <circle cx="28" cy="4" r="4" fill="#ffea00"/> <!-- Rider Helmet -->
                 </svg>
             </div>
             """
@@ -276,6 +377,15 @@ try:
             components.html(html_content + mock_js, height=1200, scrolling=True)
 
     elif portal == "Authority Control Room":
+        with st.expander("Edge Node Configuration"):
+            st.caption("Control the local YOLOv8 processing node.")
+            stream_type = st.radio("Select Video Source:", ["Pre-recorded Video (test2.mp4)", "Live IP Camera Stream"])
+            if stream_type == "Live IP Camera Stream":
+                ip_url = st.text_input("Enter IP Camera URL:", "http://192.168.1.100:8080/video")
+            if st.button("Start ATVED"):
+                source = "IP Camera" if stream_type == "Live IP Camera Stream" else "test2.mp4"
+                st.success("System has started detecting.")
+        
         df = pd.read_sql_query('SELECT * FROM fine_transactions ORDER BY created_at DESC', conn)
         drivers = pd.read_sql_query('SELECT id, name, traffic_score FROM drivers', conn)
         
@@ -306,35 +416,41 @@ try:
         traffic_anim_html = """
         <style>
         @keyframes scrollRoad { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        @keyframes driveBus { 0% { left: -150px; } 100% { left: 100%; } }
-        @keyframes driveCar { 0% { left: -100px; } 100% { left: 100%; } }
-        @keyframes driveBike { 0% { left: -50px; } 100% { left: 100%; } }
+        @keyframes driveBus { 0% { left: -200px; } 100% { left: 100%; } }
+        @keyframes driveCar { 0% { left: -150px; } 100% { left: 100%; } }
+        @keyframes driveBike { 0% { left: -100px; } 100% { left: 100%; } }
         svg.brutal-car { display: block !important; position: absolute; }
-        .traffic-animation { border-bottom: 4px solid #111; border-top: 4px solid #111; background: #fff; overflow: hidden; position: relative; height: 70px; margin-bottom: 30px; box-shadow: 0px 8px 0px #111; }
-        .traffic-animation::before { content: ""; position: absolute; top: 50%; width: 200%; border-top: 4px dashed #111; animation: scrollRoad 2s linear infinite; }
+        .traffic-animation { border-bottom: 6px solid #222; border-top: 6px solid #222; background: #607d8b; overflow: hidden; position: relative; height: 90px; margin-bottom: 30px; box-shadow: 0px 8px 0px #111; }
+        .traffic-animation::before { content: ""; position: absolute; top: 50%; width: 200%; border-top: 4px dashed #fff; animation: scrollRoad 1.5s linear infinite; }
         </style>
         <div class="traffic-animation">
-            <!-- BUS -->
-            <svg class="brutal-car" style="animation: driveBus 8s linear infinite; top: 10px; z-index: 2;" width="100" height="40" viewBox="0 0 100 40">
-                <rect x="0" y="0" width="90" height="30" fill="#00f0ff" stroke="#111" stroke-width="3"/>
-                <rect x="10" y="5" width="15" height="10" fill="#fff" stroke="#111" stroke-width="3"/>
-                <rect x="30" y="5" width="15" height="10" fill="#fff" stroke="#111" stroke-width="3"/>
-                <rect x="50" y="5" width="15" height="10" fill="#fff" stroke="#111" stroke-width="3"/>
-                <rect x="70" y="5" width="15" height="10" fill="#fff" stroke="#111" stroke-width="3"/>
-                <circle cx="20" cy="30" r="6" fill="#111"/><circle cx="70" cy="30" r="6" fill="#111"/>
+            <!-- Modern City Bus -->
+            <svg class="brutal-car" style="animation: driveBus 8s linear infinite; top: 15px; z-index: 2;" width="140" height="50" viewBox="0 0 140 50">
+                <rect x="5" y="5" width="130" height="35" rx="4" fill="#00e5ff" stroke="#111" stroke-width="2"/>
+                <rect x="15" y="10" width="20" height="15" rx="2" fill="#e1f5fe" stroke="#111" stroke-width="1.5"/>
+                <rect x="40" y="10" width="20" height="15" rx="2" fill="#e1f5fe" stroke="#111" stroke-width="1.5"/>
+                <rect x="65" y="10" width="20" height="15" rx="2" fill="#e1f5fe" stroke="#111" stroke-width="1.5"/>
+                <rect x="90" y="10" width="20" height="15" rx="2" fill="#e1f5fe" stroke="#111" stroke-width="1.5"/>
+                <rect x="115" y="10" width="15" height="15" rx="2" fill="#81d4fa" stroke="#111" stroke-width="1.5"/> <!-- Driver window -->
+                <circle cx="30" cy="40" r="8" fill="#333" stroke="#eee" stroke-width="2"/>
+                <circle cx="110" cy="40" r="8" fill="#333" stroke="#eee" stroke-width="2"/>
+                <rect x="130" y="25" width="5" height="5" fill="#ffea00"/> <!-- Headlight -->
             </svg>
-            <!-- CAR -->
-            <svg class="brutal-car" style="animation: driveCar 5s linear infinite; animation-delay: 2s; top: 20px; z-index: 3;" width="60" height="30" viewBox="0 0 60 30">
-                <rect x="0" y="10" width="50" height="20" fill="#ff1744" stroke="#111" stroke-width="3"/>
-                <rect x="10" y="0" width="30" height="10" fill="#fff" stroke="#111" stroke-width="3"/>
-                <circle cx="15" cy="30" r="6" fill="#111"/><circle cx="35" cy="30" r="6" fill="#111"/>
+            <!-- Sleek Car -->
+            <svg class="brutal-car" style="animation: driveCar 4.5s linear infinite; animation-delay: 2s; top: 40px; z-index: 4;" width="80" height="40" viewBox="0 0 80 40">
+                <path d="M10,25 L15,10 L35,10 L50,15 L70,18 L75,30 L5,30 Z" fill="#ffea00" stroke="#111" stroke-width="2"/>
+                <path d="M20,12 L32,12 L45,17 L20,17 Z" fill="#81d4fa" stroke="#111" stroke-width="1.5"/>
+                <circle cx="20" cy="30" r="7" fill="#333" stroke="#eee" stroke-width="2"/>
+                <circle cx="60" cy="30" r="7" fill="#333" stroke="#eee" stroke-width="2"/>
+                <circle cx="72" cy="22" r="2" fill="#fff"/>
             </svg>
-            <!-- BIKE -->
-            <svg class="brutal-car" style="animation: driveBike 3s linear infinite; animation-delay: 1s; top: 30px; z-index: 4;" width="40" height="30" viewBox="0 0 40 30">
-                <line x1="5" y1="20" x2="25" y2="20" stroke="#111" stroke-width="3"/>
-                <line x1="15" y1="20" x2="10" y2="10" stroke="#111" stroke-width="3"/>
-                <rect x="5" y="0" width="10" height="10" fill="#ffea00" stroke="#111" stroke-width="3"/>
-                <circle cx="5" cy="20" r="5" fill="none" stroke="#111" stroke-width="3"/><circle cx="25" cy="20" r="5" fill="none" stroke="#111" stroke-width="3"/>
+            <!-- Sport Bike -->
+            <svg class="brutal-car" style="animation: driveBike 3s linear infinite; animation-delay: 1s; top: 30px; z-index: 5;" width="55" height="35" viewBox="0 0 55 35">
+                <circle cx="15" cy="25" r="8" fill="#222" stroke="#aaa" stroke-width="2"/>
+                <circle cx="40" cy="25" r="8" fill="#222" stroke="#aaa" stroke-width="2"/>
+                <path d="M15,25 L25,10 L35,10 L40,25" fill="none" stroke="#ff1744" stroke-width="4" stroke-linejoin="round"/>
+                <path d="M25,10 L30,5 L35,10" fill="none" stroke="#111" stroke-width="3" stroke-linejoin="round"/>
+                <circle cx="28" cy="4" r="4" fill="#00e5ff"/> <!-- Rider Helmet -->
             </svg>
         </div>
         """
@@ -452,7 +568,7 @@ try:
         image_files = glob.glob("demo_images/*.jpg") + glob.glob("demo_images/*.png") + glob.glob("demo_images/*.jpeg")
         slideshow_html = ""
         if image_files:
-            slideshow_html += "<div class='glass-panel' style='margin-bottom: 30px;'><h3>LIVE DETECTIONS</h3><div style='background: #111; padding: 10px; border: 4px solid #111; text-align: center; height: 300px; display: flex; align-items: center; justify-content: center; overflow: hidden;'>"
+            slideshow_html += "<div class='glass-panel' style='margin-bottom: 30px;'><h3>Live Detection</h3><div style='background: #111; padding: 10px; border: 4px solid #111; text-align: center; height: 300px; display: flex; align-items: center; justify-content: center; overflow: hidden;'>"
             for img_path in image_files:
                 try:
                     with open(img_path, "rb") as img_file:
@@ -467,6 +583,38 @@ try:
         html_content = html_content.replace('<div class="grid-2">', slideshow_html + '<div class="grid-2">')
         
         components.html(html_content + auth_js, height=1500, scrolling=True)
+
+
+    elif portal == "E-Challan Directory":
+        st.markdown("<h1>E-Challan Directory</h1>", unsafe_allow_html=True)
+        st.markdown("View all officially generated E-Challan PDF documents.")
+        
+        pdf_files = glob.glob("demo_output/challans/*.pdf")
+        if not pdf_files:
+            st.info("No E-Challans have been generated yet.")
+        else:
+            st.success(f"Found {len(pdf_files)} Generated E-Challans.")
+            
+            # Create a grid layout
+            cols = st.columns(3)
+            for idx, pdf_path in enumerate(pdf_files):
+                filename = os.path.basename(pdf_path)
+                with cols[idx % 3]:
+                    st.markdown(f"**{filename}**")
+                    with open(pdf_path, "rb") as f:
+                        pdf_bytes = f.read()
+                    
+                    st.download_button(label=f"Download {filename}",
+                                       data=pdf_bytes,
+                                       file_name=filename,
+                                       mime='application/pdf',
+                                       key=f"dl_{idx}")
+                    
+                    # Optional: Inline preview using iframe and base64
+                    b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+                    pdf_display = f'<iframe src="data:application/pdf;base64,{b64_pdf}" width="100%" height="400" type="application/pdf"></iframe>'
+                    st.markdown(pdf_display, unsafe_allow_html=True)
+                    st.markdown("---")
 
 except Exception as e:
     st.error(f"Error: {e}")

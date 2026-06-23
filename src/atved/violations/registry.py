@@ -181,11 +181,6 @@ class ViolationRegistry:
                 ip_det.set_zones(zones)
 
         # Speed calibration
-        ppm = camera_config.get("pixels_per_meter")
-        if ppm is not None:
-            sp_det = self._detector_map.get(ViolationType.SPEEDING)
-            if sp_det and isinstance(sp_det, SpeedViolationDetector):
-                sp_det.set_calibration(
-                    pixels_per_meter=float(ppm),
-                    speed_limit_kmh=camera_config.get("speed_limit_kmh"),
-                )
+        # Speed calibration is now loaded dynamically via load_calibration() inside SpeedViolationDetector.
+        # We no longer pass pixels_per_meter from camera_config.
+        pass

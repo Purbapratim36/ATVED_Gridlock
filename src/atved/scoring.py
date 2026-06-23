@@ -68,7 +68,7 @@ def get_score_category(score: int) -> tuple[str, float]:
         return "Critical", 3.0
 
 
-def calculate_fine(violation_type: ViolationType, driver_score: int) -> dict:
+def calculate_fine(violation_type: ViolationType, driver_score: int, is_eligible_for_mitigation: bool = False, plate: str = "UNKNOWN") -> dict:
     """
     Calculate the fine amount based on violation type and driver's current score.
 
@@ -76,7 +76,25 @@ def calculate_fine(violation_type: ViolationType, driver_score: int) -> dict:
     """
     base_fine = BASE_FINE_MATRIX.get(violation_type, 500)
     category, multiplier = get_score_category(driver_score)
+    
+    # Apply multiplier BEFORE discount
     final_amount = base_fine * multiplier
+
+    # Good Samaritan Fraud Gate
+    if is_eligible_for_mitigation and driver_score >= 700 and base_fine <= 5000:
+        discounted = final_amount * 0.90
+        logger.info({
+            "event":            "good_samaritan_mitigation",
+            "plate":            plate,
+            "violation_type":   violation_type.value if hasattr(violation_type, 'value') else str(violation_type),
+            "driver_score":     driver_score,
+            "base_fine":        base_fine,
+            "multiplied_fine":  final_amount,
+            "discount_applied": round(final_amount * 0.10, 2),
+            "final_fine":       discounted,
+            "timestamp":        datetime.utcnow().isoformat()
+        })
+        final_amount = discounted
 
     return {
         "base_fine": base_fine,
@@ -162,12 +180,16 @@ async def process_full_violation_flow(
         return None
 
     # Step 1: Calculate fine BEFORE deducting score (fine is based on current score)
-    fine_info = calculate_fine(violation_type, driver.traffic_score)
+    fine_info = calculate_fine(violation_type, driver.traffic_score, driver.eligible_for_mitigation, plate_text)
 
     # Step 2: Deduct score points
     penalty = PENALTY_MATRIX.get(violation_type, 0)
     old_score = driver.traffic_score
     driver.traffic_score = max(0, driver.traffic_score + penalty)
+    
+    # Reset mitigation status if it was used
+    if driver.eligible_for_mitigation:
+        driver.eligible_for_mitigation = False
 
     # Step 3: Simulate bank deduction
     bank_deducted = False

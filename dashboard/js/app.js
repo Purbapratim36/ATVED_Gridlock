@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8000/api/v1";
+const API_BASE = window.location.origin + "/api/v1";
 let currentAadhaar = "";
 let chartInstance = null;
 
@@ -163,7 +163,7 @@ async function loadDashboard() {
                 // Action Column
                 const tdAction = document.createElement('td');
                 if (t.bank_deducted) {
-                    tdAction.innerHTML = `<a href="http://localhost:8000/pdf/${t.violation_record_id}.pdf" target="_blank" style="padding: 6px 12px; background: var(--glass-border); color: var(--text-muted); border: 1px solid var(--text-muted); border-radius: 4px; text-decoration: none; font-size: 0.8rem; font-weight: bold; pointer-events: none; opacity: 0.7;">Paid - Download PDF</a>`;
+                    tdAction.innerHTML = `<a href="${window.location.origin}/pdf/${t.violation_record_id}.pdf" target="_blank" style="padding: 6px 12px; background: var(--glass-border); color: var(--text-muted); border: 1px solid var(--text-muted); border-radius: 4px; text-decoration: none; font-size: 0.8rem; font-weight: bold; pointer-events: none; opacity: 0.7;">Paid - Download PDF</a>`;
                 } else {
                     const payBtn = document.createElement('button');
                     payBtn.textContent = 'Pay Challan';

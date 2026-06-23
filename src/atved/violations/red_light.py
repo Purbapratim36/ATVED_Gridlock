@@ -40,9 +40,11 @@ class RedLightDetector(BaseViolationDetector):
     SIGNAL_GREEN = "traffic_light_green"
     SIGNAL_AMBER = "traffic_light_amber"
 
+    CONFIRMATION_THRESHOLD = 3
+
     def __init__(self, config, violation_type=ViolationType.RED_LIGHT):
         super().__init__(config, violation_type)
-        self._confirm_frames = config.signal_confirm_frames or 3
+        self._confirm_frames = self.CONFIRMATION_THRESHOLD
         self._grace_ms = config.grace_period_ms or 500
         self._allow_right_on_red = config.right_turn_on_red_allowed or False
         self._stop_line_y: float | None = None
@@ -61,7 +63,7 @@ class RedLightDetector(BaseViolationDetector):
         if state == "RED":
             self._red_streak += 1
         else:
-            self._red_streak = 0
+            self._red_streak = max(0, self._red_streak - 2)
         self._signal_confirmed_red = self._red_streak >= self._confirm_frames
 
     def analyze(
@@ -137,8 +139,9 @@ class RedLightDetector(BaseViolationDetector):
         if red_signals and not green_signals:
             self._red_streak += 1
         elif green_signals:
-            self._red_streak = 0
-        # If neither detected, keep current state (signal might be occluded)
+            self._red_streak = max(0, self._red_streak - 2)
+        else:
+            self._red_streak = max(0, self._red_streak - 2)
 
         self._signal_confirmed_red = self._red_streak >= self._confirm_frames
 
