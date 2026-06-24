@@ -43,9 +43,7 @@ from atved.scoring import (
     calculate_fine, generate_receipt_number, get_score_category,
 )
 
-# ---------------------------------------------------------------------------
 # Database
-# ---------------------------------------------------------------------------
 DATABASE_URL = "sqlite+aiosqlite:///atved.db"
 engine = create_async_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -55,9 +53,7 @@ import asyncio
 
 # Queue for DB Writes removed in favor of violations router
 
-# ---------------------------------------------------------------------------
 # Lifespan
-# ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
@@ -72,9 +68,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-# ---------------------------------------------------------------------------
 # App
-# ---------------------------------------------------------------------------
 app = FastAPI(title="ATVED GridLock API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
@@ -87,9 +81,7 @@ app.add_middleware(
 from atved.api.routers import violations
 app.include_router(violations.router)
 
-# ---------------------------------------------------------------------------
 # WebSocket Connection Manager
-# ---------------------------------------------------------------------------
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -111,9 +103,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# ---------------------------------------------------------------------------
 # Pydantic Schemas
-# ---------------------------------------------------------------------------
 class ViolationIngest(BaseModel):
     camera_external_id: str = "CAM-GHY-001"
     violation_type: str
@@ -144,9 +134,7 @@ class AppealResolve(BaseModel):
     notes: str
 
 
-# ===========================================================================
 # AUTH ENDPOINTS — Aadhaar + OTP Login
-# ===========================================================================
 
 @app.post("/api/v1/auth/aadhaar-login")
 async def aadhaar_login(req: AadhaarLoginRequest):
@@ -258,13 +246,9 @@ async def verify_otp(req: OTPVerifyRequest):
         }
 
 
-# ===========================================================================
 # INGESTION — Violation from AI Pipeline (Moved to routers/violations.py)
-# ===========================================================================
 
-# ===========================================================================
 # WEBSOCKET ENDPOINTS
-# ===========================================================================
 @app.websocket("/ws/authority")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
@@ -368,9 +352,7 @@ def generate_echallan_pdf(record, driver, req, fine_result):
     return file_path
 
 
-# ===========================================================================
 # DRIVER / USER ENDPOINTS
-# ===========================================================================
 
 @app.get("/api/v1/drivers/profile")
 async def get_driver_profile(email: str = None, aadhaar: str = None):
@@ -531,9 +513,7 @@ async def get_driver_transactions(email: str = None, aadhaar: str = None):
         return result
 
 
-# ===========================================================================
 # AUTHORITY ENDPOINTS
-# ===========================================================================
 
 @app.get("/api/v1/violations")
 async def list_all_violations():
@@ -770,9 +750,7 @@ async def pay_fine(transaction_id: str):
         return {"status": "success", "new_score": driver.traffic_score, "balance": driver.bank_balance}
 
 
-# ===========================================================================
 # APPEALS ENDPOINTS
-# ===========================================================================
 
 @app.post("/api/v1/appeals")
 async def submit_appeal(req: AppealSubmit):
@@ -851,7 +829,7 @@ async def resolve_appeal(appeal_id: str, req: AppealResolve):
                         )).scalar_one_or_none()
                         if txn and txn.bank_deducted:
                             driver.bank_balance += txn.final_amount
-                            print(f"💰 Refund of Rs.{txn.final_amount:.0f} to {driver.name}")
+                            print(f" Refund of Rs.{txn.final_amount:.0f} to {driver.name}")
 
         elif req.action.upper() == "REJECT":
             appeal.status = AppealStatus.UPHELD
@@ -864,9 +842,7 @@ async def resolve_appeal(appeal_id: str, req: AppealResolve):
         return {"status": "resolved", "appeal_status": appeal.status.value}
 
 
-# ===========================================================================
 # Static file serving for dashboards
-# ===========================================================================
 
 @app.get("/api/v1/cameras")
 async def get_cameras():

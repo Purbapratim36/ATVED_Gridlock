@@ -17,9 +17,7 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     """Recursively merge *override* into *base*, returning a new dict."""
@@ -40,9 +38,7 @@ def _load_yaml(path: Path) -> dict[str, Any]:
         return yaml.safe_load(fh) or {}
 
 
-# ---------------------------------------------------------------------------
 # Pydantic sub-models (typed config sections)
-# ---------------------------------------------------------------------------
 
 class AppConfig(BaseModel):
     name: str = "ATVED"
@@ -299,9 +295,7 @@ class ObservabilityConfig(BaseModel):
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
 
-# ---------------------------------------------------------------------------
 # Root settings
-# ---------------------------------------------------------------------------
 
 class Settings(BaseSettings):
     """
@@ -330,9 +324,7 @@ class Settings(BaseSettings):
     model_config = {"env_prefix": "ATVED_", "env_nested_delimiter": "__"}
 
 
-# ---------------------------------------------------------------------------
 # Loader
-# ---------------------------------------------------------------------------
 
 def load_settings(
     config_dir: str | Path | None = None,

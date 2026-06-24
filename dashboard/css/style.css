@@ -27,7 +27,7 @@ body {
     overflow-x: hidden;
 }
 
-/* Background Animated Blobs */
+
 .blob {
     position: absolute;
     filter: blur(80px);
@@ -56,7 +56,7 @@ body {
     100% { transform: translateY(30px) scale(1.1); }
 }
 
-/* Navbar */
+
 nav {
     display: flex;
     justify-content: space-between;
@@ -105,7 +105,7 @@ nav {
     width: 100%;
 }
 
-/* Glass Panels */
+
 .glass-panel {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
@@ -121,7 +121,7 @@ nav {
     box-shadow: 0 12px 40px rgba(0, 240, 255, 0.1);
 }
 
-/* Buttons */
+
 .btn-glow {
     background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
     border: none;
@@ -141,7 +141,7 @@ nav {
     transform: scale(1.05);
 }
 
-/* Inputs */
+
 input.glass-input {
     width: 100%;
     padding: 15px;
@@ -160,7 +160,7 @@ input.glass-input:focus {
     box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
 }
 
-/* Layouts */
+
 .container {
     max-width: 1200px;
     margin: 50px auto;
@@ -178,7 +178,7 @@ input.glass-input:focus {
     gap: 20px;
 }
 
-/* Animations */
+
 .fade-in {
     animation: fadeIn 0.8s ease forwards;
     opacity: 0;
@@ -189,7 +189,7 @@ input.glass-input:focus {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* specific components */
+
 .metric-card h3 {
     color: var(--text-muted);
     font-size: 14px;
@@ -222,7 +222,7 @@ tr:hover td {
     background: rgba(255,255,255,0.02);
 }
 
-/* Badges */
+
 .badge {
     padding: 6px 12px;
     border-radius: 20px;
@@ -250,7 +250,7 @@ tr:hover td {
     box-shadow: 0 0 10px rgba(255, 23, 68, 0.2);
 }
 
-/* SVG Gauge */
+
 .gauge-container {
     position: relative;
     width: 280px;
@@ -277,7 +277,7 @@ tr:hover td {
     filter: drop-shadow(0 0 15px var(--success));
 }
 
-/* Glowing Border Card */
+
 .glow-card {
     position: relative;
     border-radius: 16px;
@@ -300,7 +300,7 @@ tr:hover td {
     100% { background-position: 0% 50%; }
 }
 
-/* Floating Label Input */
+
 .input-group {
     position: relative;
     margin-bottom: 25px;
@@ -326,7 +326,7 @@ tr:hover td {
     color: var(--accent-primary);
 }
 
-/* Enhanced Table */
+
 .enhanced-table tr {
     transition: transform 0.2s ease, background 0.2s ease;
 }
